@@ -28,6 +28,24 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   return res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(env.PORT, () => {
-  console.log(`karta-api running on http://localhost:${env.PORT}`);
-});
+
+// server.js
+import { pool } from "./db.js";
+
+async function start() {
+  try {
+    const conn = await pool.getConnection();
+    await conn.ping(); // or: await conn.query("SELECT 1");
+    conn.release();
+    console.log("MySQL connected");
+
+    app.listen(process.env.PORT || 3000, () => {
+      console.log("Server started");
+    });
+  } catch (err) {
+    console.error("MySQL connection failed:", err.message);
+    process.exit(1); // stop app if DB is down
+  }
+}
+
+start();
