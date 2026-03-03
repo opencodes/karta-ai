@@ -1,24 +1,14 @@
-# 🛠️ Karta: Product Ecosystem
+# 🎯 Product Intent: Karta.ai
 
-## 1. Core Modules
-### 💰 Karta-Fin (Finance)
-- Auto-tracking of expenses via SMS/Email parsing.
-- Net worth visualization.
-- Investment goal tracking.
+## 1. The Core Vision
+Most productivity apps are "Digital Paper"—they wait for the user to write. **Karta** is a "Digital Agent." It understands context, predicts needs, and executes tasks.
 
-### 📅 Karta-Cal (Events)
-- Smart scheduling (protects "Deep Work" blocks).
-- Contextual reminders (e.g., "Bring the file for the 3 PM meeting").
+## 2. Problem Statement
+Users suffer from "Decision Fatigue." They spend more time managing lists than doing work. They have data scattered across SMS (finance), Email (events), and Brain (todos).
 
-### 📝 Karta-Do (Tasks)
-- Priority-first execution.
-- AI-driven "Next Best Action" suggestions.
+## 3. The Karta Solution (The "Agent" Logic)
+- **Centralize:** One hub for money, time, and tasks.
+- **Analyze:** Identify the "Next Best Action."
+- **Execute:** Automate the low-level tasks (e.g., categorizing an expense or setting a meeting reminder).
 
-### 🤝 Karta-Kin (Contacts)
-- Personal CRM.
-- Reminders for follow-ups (e.g., "You haven't spoken to X in 3 months").
-
-## 2. Technical Philosophy
-- **Privacy First:** End-to-end encryption for financial data.
-- **Autonomy:** The AI suggests actions; the user confirms.
-- **Integration:** API-first approach to connect with banking and calendars.
+ 

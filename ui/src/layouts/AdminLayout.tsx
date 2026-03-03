@@ -1,23 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
-  Wallet,
-  Calendar,
-  Users,
-  Settings,
+  ListTodo,
   Search,
+  Settings,
   Zap,
   Bell,
   ArrowDownRight,
   Command,
-  Home,
   Sun,
   Moon,
-  BellRing
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../utils/cn';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { NotificationDropdown, Notification } from '../components/NotificationDropdown';
 
 interface AdminLayoutProps {
@@ -28,10 +25,13 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const commandInputRef = useRef<HTMLInputElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const onLogout = () => {
-    navigate('/');
+    logout();
+    navigate('/login');
   };
 
   useEffect(() => {
@@ -54,7 +54,20 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     }
   }, [isCommandOpen]);
 
-  const { theme, toggleTheme, permissions, isAdmin } = useTheme();
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const { theme, toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -103,20 +116,10 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   };
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin', id: 'dashboard' },
-    { icon: Home, label: 'Family', path: '/admin/family', id: 'family' },
-    { icon: Wallet, label: 'Finance', path: '/admin/wallet', id: 'finance' },
-    { icon: Calendar, label: 'Calendar', path: '/admin/calendar', id: 'calendar' },
-    { icon: Users, label: 'Contacts', path: '/admin/contacts', id: 'contacts' },
-    { icon: BellRing, label: 'Notifications', path: '/admin/notifications', id: 'notifications' },
-    { icon: Settings, label: 'Settings', path: '/admin/settings', id: 'settings' },
+    { icon: Zap, label: 'Admin Home', path: '/admin', id: 'admin_home' },
+    { icon: ListTodo, label: 'ToDo', path: '/admin/todo', id: 'todo' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard', id: 'dashboard' },
   ];
-
-  const filteredNavItems = navItems.filter(item => {
-    if (item.id === 'dashboard' || item.id === 'settings') return true;
-    if (isAdmin) return true;
-    return permissions[item.id] !== false;
-  });
 
   return (
     <div className="flex h-screen bg-midnight text-slate-500 overflow-hidden">
@@ -130,7 +133,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1">
-          {filteredNavItems.map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
@@ -207,10 +210,31 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 onMarkAllAsRead={handleMarkAllAsRead}
               />
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-blue-500 p-[1px]">
-              <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center text-xs font-bold text-white">
-                RJ
-              </div>
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-teal to-blue-500 p-[1px]"
+                aria-label="Open profile menu"
+                title="Profile menu"
+              >
+                <div className="w-full h-full rounded-full bg-[#050505] flex items-center justify-center text-xs font-bold text-white">
+                  {user?.email?.slice(0, 2).toUpperCase() ?? 'RJ'}
+                </div>
+              </button>
+              {isProfileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-44 glass rounded-xl border border-white/10 shadow-xl overflow-hidden z-20">
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      navigate('/admin/settings');
+                    }}
+                    className="w-full text-left px-3 py-2.5 text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -242,7 +266,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 <span className="text-heading">Create new execution task</span>
               </button>
               <button className="w-full text-left px-3 py-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3">
-                <Wallet className="w-4 h-4 text-slate-400" />
+                <LayoutDashboard className="w-4 h-4 text-slate-400" />
                 <span className="text-heading">View latest financial report</span>
               </button>
             </div>

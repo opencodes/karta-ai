@@ -35,7 +35,7 @@ function TaskRow({ item, onToggleFeature }: { item: TaskItem; onToggleFeature: (
   );
 }
 
-export const AdminDashboard = () => {
+export const TodoPage = () => {
   const { token, logout } = useAuth();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [error, setError] = useState('');
@@ -78,10 +78,10 @@ export const AdminDashboard = () => {
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-2">
           <ListTodo className="w-4 h-4 text-teal" />
-          <p className="text-xs font-bold text-teal uppercase tracking-widest">Dashboard</p>
+          <p className="text-xs font-bold text-teal uppercase tracking-widest">ToDo</p>
         </div>
-        <h1 className="text-xl md:text-2xl font-display font-semibold text-heading">ToDo Overview</h1>
-        <p className="text-sm text-slate-500 mt-1">Only task queues are shown here for now.</p>
+        <h1 className="text-xl md:text-2xl font-display font-semibold text-heading">Task Buckets</h1>
+        <p className="text-sm text-slate-500 mt-1">Tasks created from Karta Workspace appear here with scheduling details.</p>
         {error ? <p className="text-sm text-red-400 mt-3">{error}</p> : null}
       </Card>
 

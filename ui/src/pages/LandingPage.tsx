@@ -8,7 +8,7 @@ export const LandingPage = () => {
   const navigate = useNavigate();
 
   const onLogin = () => {
-    navigate('/admin');
+    navigate('/login');
   };
 
   return (

@@ -6,7 +6,7 @@
 - [ ] Finalize Logo & Brand Guidelines.
 
 ## Phase 2: MVP Development (Alpha)
-- [ ] Build core Finance Tracking engine.
+- [ ] Build core engine.
 - [ ] Build basic To-Do and Event integration.
 - [ ] Internal testing with 10 users.
 
@@ -14,7 +14,3 @@
 - [ ] Open beta for first 100 waitlist users.
 - [ ] Integrate "Personal Agent" chat interface.
 - [ ] Feedback loop for AI accuracy.
-
-## Phase 4: Public Launch
-- [ ] Mobile App (iOS/Android) rollout.
-- [ ] Subscription model (Karta Pro) introduction.
