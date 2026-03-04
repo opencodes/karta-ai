@@ -10,15 +10,29 @@ function isInNextHours(dateIso: string, hours: number): boolean {
   return due >= now && due <= now + hours * 60 * 60 * 1000;
 }
 
+function getTaskMeta(item: TaskItem): { date: string; time: string; recurring: string; tags: string[] } {
+  return {
+    date: item.date,
+    time: item.time,
+    recurring: item.recurring,
+    tags: item.tags,
+  };
+}
+
 function TaskRow({ item, onToggleFeature }: { item: TaskItem; onToggleFeature: (item: TaskItem) => void }) {
+  const meta = getTaskMeta(item);
+
   return (
     <li className="py-3 border-b border-white/5 last:border-b-0">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-heading text-sm font-medium">{item.title}</p>
           <p className="text-xs text-slate-500 mt-1">
-            {item.category} • {new Date(item.dueDate).toLocaleString()}
+            {item.category} • {meta.date} • {meta.time} • {meta.recurring}
           </p>
+          {meta.tags.length > 0 ? (
+            <p className="text-[11px] text-slate-500 mt-1">Tags: {meta.tags.join(', ')}</p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -120,7 +134,7 @@ export const TodoPage = () => {
                   <p className="text-sm text-heading">{item.title}</p>
                   <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                     <Clock3 className="w-3.5 h-3.5" />
-                    {new Date(item.dueDate).toLocaleString()}
+                    {getTaskMeta(item).date} {getTaskMeta(item).time} • {getTaskMeta(item).recurring}
                   </p>
                 </li>
               ))}

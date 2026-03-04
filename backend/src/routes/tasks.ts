@@ -30,9 +30,19 @@ tasksRouter.post('/parse-create', async (req, res) => {
   const id = crypto.randomUUID();
 
   await pool.execute(
-    `INSERT INTO tasks (id, raw_input, title, category, due_date, featured, status)
-     VALUES (?, ?, ?, ?, ?, 0, 'pending')`,
-    [id, rawInput, parsed.title, parsed.category, parsed.dueDate],
+    `INSERT INTO tasks (id, raw_input, title, category, tags, task_time, task_date, recurring, due_date, featured, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'pending')`,
+    [
+      id,
+      rawInput,
+      parsed.title,
+      parsed.category,
+      JSON.stringify(parsed.tags),
+      parsed.time,
+      parsed.date,
+      parsed.recurring,
+      parsed.dueDate,
+    ],
   );
 
   const [rows] = await pool.query('SELECT * FROM tasks WHERE id = ? LIMIT 1', [id]);

@@ -39,6 +39,8 @@ Security:
 mysql -h 192.168.1.17 -P 3306 -u root -p
 
    `mysql -u <user> -p <database> < sql/schema.sql`
+   - For existing databases, also run:
+   `mysql -u <user> -p <database> < sql/migrations/001_add_task_metadata.sql`
 4. Run API:
    `npm run dev`
 

@@ -11,6 +11,10 @@ export type TaskItem = {
   rawInput: string;
   title: string;
   category: 'Finance' | 'Personal' | 'Work' | 'Contact' | 'General';
+  tags: string[];
+  time: string;
+  date: string;
+  recurring: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   dueDate: string;
   featured: boolean;
   status: 'pending' | 'done';

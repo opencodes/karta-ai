@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { TaskCategory } from '../types.js';
 import { env } from '../config.js';
 import { HuggingFaceClient } from '../services/huggingFaceClient.js';
+import { buildTodoTaskParserPrompt } from '../config/prompts/index.js';
 
 const categoryRules: Array<{ keywords: string[]; category: TaskCategory }> = [
   { keywords: ['pay', 'bill', 'invoice', 'tax'], category: 'Finance' },
@@ -9,6 +10,16 @@ const categoryRules: Array<{ keywords: string[]; category: TaskCategory }> = [
   { keywords: ['deploy', 'review', 'build', 'bug'], category: 'Work' },
   { keywords: ['gym', 'health', 'family', 'groceries'], category: 'Personal' },
 ];
+
+export type ParsedTaskInput = {
+  title: string;
+  category: TaskCategory;
+  tags: string[];
+  time: string;
+  date: string;
+  dueDate: Date;
+  recurring: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
+};
 
 export function inferCategory(input: string): TaskCategory {
   const lower = input.toLowerCase();
@@ -41,36 +52,47 @@ export function inferDueDate(input: string): Date {
   return due;
 }
 
-export function parseTaskInput(rawInput: string): { title: string; category: TaskCategory; dueDate: Date } {
+export function parseTaskInput(rawInput: string): ParsedTaskInput {
   const title = rawInput
     .replace(/remind me to\s*/i, '')
     .replace(/tomorrow/gi, '')
     .replace(/\s+at\s+\d{1,2}(:\d{2})?\s*(am|pm)?/gi, '')
     .trim();
 
+  const dueDate = inferDueDate(rawInput);
+
   return {
     title: title || rawInput,
     category: inferCategory(rawInput),
-    dueDate: inferDueDate(rawInput),
+    tags: [],
+    time: toHHmm(dueDate),
+    date: toYYYYMMDD(dueDate),
+    dueDate,
+    recurring: inferRecurring(rawInput),
   };
 }
 
 const aiParsedTaskSchema = z.object({
   title: z.string().trim().min(1),
   category: z.enum(['Finance', 'Personal', 'Work', 'Contact', 'General']),
+  tags: z.array(z.string().trim().min(1)),
+  time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   dueDate: z.string().trim().min(1),
+  recurring: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']),
 });
 
 const hfClient = new HuggingFaceClient();
 
-export async function parseTaskInputWithAi(rawInput: string): Promise<{ title: string; category: TaskCategory; dueDate: Date }> {
+export async function parseTaskInputWithAi(rawInput: string): Promise<ParsedTaskInput> {
   const fallback = parseTaskInput(rawInput);
 
   if (!env.HF_TOKEN || !hfClient.isAvailable()) {
     return fallback;
   }
 
-  const prompt = buildTaskParserPrompt(rawInput);
+  const prompt = buildTodoTaskParserPrompt(rawInput);
+
   const response = await hfClient.generate(prompt, env.HF_MAX_TOKENS);
 
   if (!response) {
@@ -87,7 +109,7 @@ export async function parseTaskInputWithAi(rawInput: string): Promise<{ title: s
     return fallback;
   }
 
-  const dueDate = new Date(parsed.data.dueDate);
+  const dueDate = normalizeAiDueDate(parsed.data.dueDate, parsed.data.date, parsed.data.time);
   if (Number.isNaN(dueDate.getTime())) {
     return fallback;
   }
@@ -95,27 +117,44 @@ export async function parseTaskInputWithAi(rawInput: string): Promise<{ title: s
   return {
     title: parsed.data.title,
     category: parsed.data.category,
+    tags: parsed.data.tags,
+    time: parsed.data.time,
+    date: parsed.data.date,
     dueDate,
+    recurring: parsed.data.recurring,
   };
 }
 
-function buildTaskParserPrompt(rawInput: string): string {
-  return `You are a task command parser.
-Return ONLY valid JSON. No markdown. No explanation.
-Categories allowed exactly: Finance, Personal, Work, Contact, General.
-dueDate must be ISO-8601 UTC timestamp.
+function normalizeAiDueDate(dueDateIso: string, date: string, time: string): Date {
+  const direct = new Date(dueDateIso);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct;
+  }
 
-Output schema:
-{
-  "title": "clean task title",
-  "category": "one allowed category",
-  "dueDate": "YYYY-MM-DDTHH:mm:ss.sssZ"
+  // Fallback if model returns separate date/time correctly but malformed dueDate.
+  return new Date(`${date}T${time}:00.000Z`);
 }
 
-If time is missing, choose one hour from now.
-If date is missing, choose today (or tomorrow if explicitly stated).
+function toHHmm(value: Date): string {
+  const h = String(value.getHours()).padStart(2, '0');
+  const m = String(value.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
 
-Command: ${rawInput}`;
+function toYYYYMMDD(value: Date): string {
+  const y = value.getFullYear();
+  const m = String(value.getMonth() + 1).padStart(2, '0');
+  const d = String(value.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function inferRecurring(input: string): 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' {
+  const lower = input.toLowerCase();
+  if (lower.includes('every day') || lower.includes('daily')) return 'daily';
+  if (lower.includes('every week') || lower.includes('weekly')) return 'weekly';
+  if (lower.includes('every month') || lower.includes('monthly')) return 'monthly';
+  if (lower.includes('every year') || lower.includes('yearly')) return 'yearly';
+  return 'none';
 }
 
 function extractJsonObject(text: string): unknown | null {

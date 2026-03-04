@@ -5,6 +5,10 @@ export type TaskRecord = {
   raw_input: string;
   title: string;
   category: TaskCategory;
+  tags: string[] | string;
+  task_time: string;
+  task_date: Date | string;
+  recurring: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   due_date: Date;
   featured: 0 | 1;
   status: 'pending' | 'done';
@@ -17,6 +21,10 @@ export type TaskDto = {
   rawInput: string;
   title: string;
   category: TaskCategory;
+  tags: string[];
+  time: string;
+  date: string;
+  recurring: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly';
   dueDate: string;
   featured: boolean;
   status: 'pending' | 'done';
