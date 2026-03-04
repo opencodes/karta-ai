@@ -32,6 +32,7 @@ Security:
 
 ## Setup
 1. Copy `.env.example` to `.env` and update DB/JWT values.
+   - Optional AI parsing: set `HF_TOKEN` (and optionally `HF_MODEL`, `HF_MAX_TOKENS`).
 2. Install dependencies:
    `npm install`
 3. Create schema:
@@ -60,6 +61,7 @@ mysql -h 192.168.1.17 -P 3306 -u root -p
 ### Tasks (Bearer token required)
 - `POST /api/tasks/parse-create`
   - body: `{ "rawInput": "Pay electricity bill tomorrow at 4 PM" }`
+  - Uses Hugging Face command parsing when `HF_TOKEN` is set, else falls back to rule-based parsing.
 - `GET /api/tasks?bucket=all|now|later|featured`
 - `PATCH /api/tasks/:id/feature`
   - body: `{ "featured": true }`

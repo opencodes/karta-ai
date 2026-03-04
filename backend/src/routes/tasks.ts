@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../db.js';
 import { toTaskDto, isInNextHours } from '../utils/taskMapper.js';
-import { parseTaskInput } from '../utils/taskParser.js';
+import { parseTaskInputWithAi } from '../utils/taskParser.js';
 import type { TaskRecord } from '../types.js';
 
 const createTaskSchema = z.object({
@@ -26,7 +26,7 @@ tasksRouter.post('/parse-create', async (req, res) => {
   }
 
   const { rawInput } = parsedBody.data;
-  const parsed = parseTaskInput(rawInput);
+  const parsed = await parseTaskInputWithAi(rawInput);
   const id = crypto.randomUUID();
 
   await pool.execute(

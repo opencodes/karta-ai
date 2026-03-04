@@ -33,10 +33,10 @@ export const LandingPage = () => {
       </nav>
 
       {/* 🏠 HERO SECTION */}
-      <section className="relative min-h-screen flex items-center justify-center pt-32 pb-20 px-6 md:px-12 overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center pt-32 pb-20 px-6 md:px-12 overflow-hidden bg-[#050505]">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-teal/10 rounded-full blur-[120px]" />
-          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-teal/5 rounded-full blur-[100px]" />
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
         </div>
 
@@ -71,7 +71,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 🌌 SECTION 1 — THE IDEA */}
-      <section id="idea" className="py-32 px-6 md:px-12 border-y border-white/5">
+      <section id="idea" className="py-32 px-6 md:px-12 border-y border-white/8 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <motion.div
@@ -112,7 +112,7 @@ export const LandingPage = () => {
       </section>
 
       {/* ⚙️ SECTION 2 — HOW IT WORKS */}
-      <section id="how-it-works" className="py-32 px-6 md:px-12 bg-white/[0.01]">
+      <section id="how-it-works" className="py-32 px-6 md:px-12 bg-[#0d0d0d] border-y border-white/8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">From Intention to Completion</h2>
@@ -157,7 +157,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 🧠 SECTION 3 — THE KARTA ENGINE */}
-      <section id="engine" className="py-32 px-6 md:px-12">
+      <section id="engine" className="py-32 px-6 md:px-12 bg-[#101010] border-y border-white/8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
             <div className="order-2 lg:order-1 relative">
@@ -228,7 +228,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 🚀 SECTION 4 — WHAT KARTA AI DOES */}
-      <section className="py-32 px-6 md:px-12 bg-white/[0.01]">
+      <section className="py-32 px-6 md:px-12 bg-[#131313] border-y border-white/8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">Built for High-Performance Workflows</h2>
@@ -257,7 +257,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 🔷 SECTION 5 — WHY KARTA AI */}
-      <section className="py-32 px-6 md:px-12">
+      <section className="py-32 px-6 md:px-12 bg-[#161616] border-y border-white/8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-6xl font-display font-bold mb-6">The Difference Is Alignment</h2>
@@ -300,7 +300,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 🌟 SECTION 6 — THE PHILOSOPHY */}
-      <section className="py-32 px-6 md:px-12 bg-white/[0.01]">
+      <section className="py-32 px-6 md:px-12 bg-[#191919] border-y border-white/8">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -331,7 +331,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 📊 SECTION 7 — WHO IT’S FOR */}
-      <section className="py-32 px-6 md:px-12">
+      <section className="py-32 px-6 md:px-12 bg-[#1c1c1c] border-y border-white/8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div>
@@ -372,7 +372,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 🔐 SECTION 8 — TRUST & SECURITY */}
-      <section id="security" className="py-32 px-6 md:px-12 border-t border-white/5">
+      <section id="security" className="py-32 px-6 md:px-12 border-y border-white/10 bg-[#202020]">
         <div className="max-w-5xl mx-auto text-center">
           <Shield className="w-20 h-20 text-teal mx-auto mb-10" />
           <h2 className="text-4xl md:text-6xl font-display font-bold mb-8">Designed for Responsible Intelligence</h2>
@@ -396,7 +396,7 @@ export const LandingPage = () => {
       </section>
 
       {/* 🔥 FINAL CTA SECTION */}
-      <section className="py-40 px-6 md:px-12 relative overflow-hidden">
+      <section className="py-40 px-6 md:px-12 relative overflow-hidden bg-[#242424] border-y border-white/10">
         <div className="absolute inset-0 bg-teal/5 -z-10" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-teal to-transparent" />
 
@@ -428,7 +428,7 @@ export const LandingPage = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="py-20 px-6 md:px-12 border-t border-white/5 bg-midnight">
+      <footer className="py-20 px-6 md:px-12 border-t border-white/10 bg-[#050505]">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
             <div className="md:col-span-2">
