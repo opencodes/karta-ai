@@ -2,13 +2,12 @@ import React from 'react';
 import { Zap, Command, ChevronRight, Shield, X, Search, LayoutDashboard, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '../components/ui/Button';
-import { useNavigate } from 'react-router-dom';
 
 export const LandingPage = () => {
-  const navigate = useNavigate();
+  const adminAppUrl = import.meta.env.VITE_ADMIN_APP_URL ?? 'http://localhost:3000';
 
   const onLogin = () => {
-    navigate('/login');
+    window.location.assign(`${adminAppUrl}/login`);
   };
 
   return (

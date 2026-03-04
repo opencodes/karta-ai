@@ -85,3 +85,5 @@ temp/
  
 ui/node_modules/
 backend/node_modules/
+ui/node_modules/
+web/node_modules/
