@@ -84,6 +84,4 @@ temp/
 # composer.lock
  
 ui/node_modules/
-apps/web/package-lock.json
-apps/web/node_modules/
-apps/api/node_modules/
+backend/node_modules/

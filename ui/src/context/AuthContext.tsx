@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { login as loginApi, me as meApi, type User } from '../lib/api';
+import { login as loginApi, me as meApi, signup as signupApi, type User } from '../lib/api';
 
 type AuthContextType = {
   token: string | null;
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -36,6 +37,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(USER_KEY, JSON.stringify(me.user ?? authUser));
   }
 
+  async function signup(email: string, password: string) {
+    const { token: authToken, user: authUser } = await signupApi(email, password);
+    const me = await meApi(authToken);
+    setToken(authToken);
+    setUser(me.user ?? authUser);
+    localStorage.setItem(TOKEN_KEY, authToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(me.user ?? authUser));
+  }
+
   function logout() {
     setToken(null);
     setUser(null);
@@ -44,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const value = useMemo(
-    () => ({ token, user, isAuthenticated: Boolean(token && user), login, logout }),
+    () => ({ token, user, isAuthenticated: Boolean(token && user), login, signup, logout }),
     [token, user],
   );
 

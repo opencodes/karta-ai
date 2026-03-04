@@ -12,6 +12,7 @@ import { Calendar } from './pages/admin/Calendar';
 import { Family } from './pages/admin/Family';
 import { Notifications } from './pages/admin/Notifications';
 import { LoginPage } from './pages/auth/LoginPage';
+import { SignupPage } from './pages/auth/SignupPage';
 import { useAuth } from './context/AuthContext';
 
 const App = () => {
@@ -21,6 +22,7 @@ const App = () => {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={isAuthenticated ? <Navigate to="/admin" replace /> : <LoginPage />} />
+      <Route path="/signup" element={isAuthenticated ? <Navigate to="/admin" replace /> : <SignupPage />} />
       <Route
         path="/admin/*"
         element={isAuthenticated ? (

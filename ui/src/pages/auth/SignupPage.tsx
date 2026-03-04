@@ -3,12 +3,13 @@ import { Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export const LoginPage = () => {
+export const SignupPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { signup } = useAuth();
 
-  const [email, setEmail] = useState('admin@karta.ai');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -17,11 +18,17 @@ export const LoginPage = () => {
     setLoading(true);
     setError('');
 
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
     try {
-      await login(email, password);
+      await signup(email, password);
       navigate('/admin', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {
       setLoading(false);
     }
@@ -41,9 +48,9 @@ export const LoginPage = () => {
           <div className="w-8 h-8 bg-teal rounded-lg flex items-center justify-center shadow-[0_0_24px_rgba(100,255,218,0.35)]">
             <Zap className="text-midnight w-5 h-5 fill-current" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-heading">Login</h1>
+          <h1 className="text-2xl font-display font-bold text-heading">Create account</h1>
         </div>
-        <p className="text-sm text-slate-400 mb-6">Sign in to access Karta admin workspace.</p>
+        <p className="text-sm text-slate-400 mb-6">Sign up to start using Karta workspace.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -64,6 +71,19 @@ export const LoginPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full h-11 px-3 rounded-xl bg-white/5 border border-white/10 text-heading outline-none focus:border-teal/40"
+              minLength={6}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-slate-500 mb-2">Confirm password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full h-11 px-3 rounded-xl bg-white/5 border border-white/10 text-heading outline-none focus:border-teal/40"
+              minLength={6}
               required
             />
           </div>
@@ -75,14 +95,14 @@ export const LoginPage = () => {
             disabled={loading}
             className="w-full h-11 rounded-xl bg-teal text-midnight font-semibold hover:bg-teal/90 disabled:opacity-60"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Creating account...' : 'Sign up'}
           </button>
         </form>
 
         <p className="mt-5 text-sm text-slate-400 text-center">
-          New to Karta?{' '}
-          <Link to="/signup" className="text-teal hover:text-teal/80 font-medium">
-            Create account
+          Already have an account?{' '}
+          <Link to="/login" className="text-teal hover:text-teal/80 font-medium">
+            Sign in
           </Link>
         </p>
       </div>

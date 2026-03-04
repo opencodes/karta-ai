@@ -49,6 +49,9 @@ mysql -h 192.168.1.17 -P 3306 -u root -p
 - `GET /health`
 
 ### Auth
+- `POST /api/auth/signup`
+  - body: `{ "email": "new@karta.ai", "password": "secret123" }`
+  - response: `{ token, user }`
 - `POST /api/auth/login`
   - body: `{ "email": "admin@karta.ai", "password": "admin123" }`
   - response: `{ token, user }`

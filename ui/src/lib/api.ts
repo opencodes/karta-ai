@@ -49,6 +49,13 @@ export async function login(email: string, password: string): Promise<{ token: s
   });
 }
 
+export async function signup(email: string, password: string): Promise<{ token: string; user: User }> {
+  return request('/api/auth/signup', {
+    method: 'POST',
+    body: { email, password },
+  });
+}
+
 export async function me(token: string): Promise<{ user: User }> {
   return request('/api/auth/me', { token });
 }
