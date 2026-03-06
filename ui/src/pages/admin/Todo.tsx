@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Clock3, ListTodo, Star } from 'lucide-react';
+import { CalendarDays, Clock3, ListTodo, Repeat, Star, Wallet } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { featureTask, listTasks, type TaskItem } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -19,33 +19,104 @@ function getTaskMeta(item: TaskItem): { date: string; time: string; recurring: s
   };
 }
 
+const spotlightTask = {
+  title: 'Pay bill every month',
+  category: 'Finance',
+  date: '2026-03-04',
+  time: '20:00',
+  recurring: 'monthly',
+};
+
+function formatDate(dateStr: string): string {
+  const value = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(value.getTime())) return dateStr;
+  return value.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function getCategoryStyle(category: TaskItem['category'] | string): string {
+  if (category === 'Finance') {
+    return 'bg-emerald-300/10 text-emerald-200 border border-emerald-300/30';
+  }
+
+  return 'bg-white/5 text-slate-300 border border-white/10';
+}
+
 function TaskRow({ item, onToggleFeature }: { item: TaskItem; onToggleFeature: (item: TaskItem) => void }) {
   const meta = getTaskMeta(item);
 
   return (
-    <li className="py-3 border-b border-white/5 last:border-b-0">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-heading text-sm font-medium">{item.title}</p>
-          <p className="text-xs text-slate-500 mt-1">
-            {item.category} • {meta.date} • {meta.time} • {meta.recurring}
-          </p>
-          {meta.tags.length > 0 ? (
-            <p className="text-[11px] text-slate-500 mt-1">Tags: {meta.tags.join(', ')}</p>
-          ) : null}
+    <li className="py-3.5 border-b border-white/5 last:border-b-0">
+      <div className="rounded-xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.22),transparent_55%),linear-gradient(180deg,rgba(20,28,44,0.95),rgba(10,14,24,0.9))] p-3.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-2">
+            <p className="text-heading text-sm font-semibold tracking-tight">{item.title}</p>
+            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+              <span className={`rounded-full px-2 py-0.5 font-semibold uppercase tracking-wide ${getCategoryStyle(item.category)}`}>
+                {item.category}
+              </span>
+              <span className="rounded-full px-2 py-0.5 text-teal border border-teal/40 bg-teal/10 font-semibold uppercase tracking-wide">
+                {meta.recurring}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+                {formatDate(meta.date)}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock3 className="w-3.5 h-3.5 text-slate-400" />
+                {meta.time}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Repeat className="w-3.5 h-3.5 text-slate-400" />
+                Repeats {meta.recurring}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onToggleFeature(item)}
+            className={item.featured
+              ? 'p-1.5 rounded-md bg-teal/20 text-teal border border-teal/40'
+              : 'p-1.5 rounded-md bg-white/5 text-slate-500 border border-white/10 hover:border-teal/40'}
+            aria-label={item.featured ? 'Unfeature task' : 'Feature task'}
+          >
+            <Star className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => onToggleFeature(item)}
-          className={item.featured
-            ? 'p-1.5 rounded-md bg-teal/20 text-teal border border-teal/40'
-            : 'p-1.5 rounded-md bg-white/5 text-slate-500 border border-white/10 hover:border-teal/40'}
-          aria-label={item.featured ? 'Unfeature task' : 'Feature task'}
-        >
-          <Star className="w-3.5 h-3.5" />
-        </button>
+        {meta.tags.length > 0 ? (
+          <p className="text-[11px] text-slate-400 mt-2">Tags: {meta.tags.join(', ')}</p>
+        ) : null}
       </div>
     </li>
+  );
+}
+
+function SpotlightTaskCard() {
+  return (
+    <Card className="p-5 overflow-hidden">
+      <div className="relative rounded-2xl border border-emerald-300/30 bg-[radial-gradient(circle_at_80%_0%,rgba(52,211,153,0.2),transparent_45%),linear-gradient(135deg,rgba(6,18,18,0.95),rgba(6,22,35,0.95))] p-5">
+        <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-emerald-300/15 blur-2xl" />
+        <div className="relative space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/35 bg-emerald-300/10 px-3 py-1">
+            <Wallet className="h-3.5 w-3.5 text-emerald-200" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-100">Task Spotlight</span>
+          </div>
+          <h2 className="text-lg font-display font-semibold text-heading">{spotlightTask.title}</h2>
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className={`rounded-full px-2 py-0.5 font-semibold uppercase tracking-wide ${getCategoryStyle(spotlightTask.category)}`}>
+              {spotlightTask.category}
+            </span>
+            <span className="rounded-full px-2 py-0.5 text-teal border border-teal/40 bg-teal/10 font-semibold uppercase tracking-wide">
+              {spotlightTask.recurring}
+            </span>
+          </div>
+          <p className="text-sm text-slate-300">
+            {formatDate(spotlightTask.date)} at {spotlightTask.time} • repeats every month
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -98,6 +169,8 @@ export const TodoPage = () => {
         <p className="text-sm text-slate-500 mt-1">Tasks created from Karta Workspace appear here with scheduling details.</p>
         {error ? <p className="text-sm text-red-400 mt-3">{error}</p> : null}
       </Card>
+
+      <SpotlightTaskCard />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card title={`Now (${nowTasks.length})`}>
