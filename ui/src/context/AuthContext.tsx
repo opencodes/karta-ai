@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { getRbacMe, login as loginApi, me as meApi, signup as signupApi, type RbacSnapshot, type User } from '../lib/api';
+import { getMyAccess, getRbacMe, login as loginApi, me as meApi, signup as signupApi, type RbacSnapshot, type User } from '../lib/api';
 
 type AuthContextType = {
   token: string | null;
@@ -43,6 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return null;
     }
   });
+  const [memberModules, setMemberModules] = useState<string[]>([]);
 
   async function refreshRbac(): Promise<RbacSnapshot | null> {
     if (!token) return null;
@@ -50,6 +51,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRbac(snapshot);
     localStorage.setItem(RBAC_KEY, JSON.stringify(snapshot));
     return snapshot;
+  }
+
+  async function refreshMemberModules(currentToken: string): Promise<string[]> {
+    try {
+      const access = await getMyAccess(currentToken);
+      const modules = access.modules ?? [];
+      setMemberModules(modules);
+      return modules;
+    } catch {
+      setMemberModules([]);
+      return [];
+    }
   }
 
   async function login(email: string, password: string) {
@@ -66,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRbac(null);
       localStorage.removeItem(RBAC_KEY);
     }
+    await refreshMemberModules(authToken);
     localStorage.setItem(TOKEN_KEY, authToken);
     localStorage.setItem(USER_KEY, JSON.stringify(me.user ?? authUser));
   }
@@ -83,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRbac(null);
       localStorage.removeItem(RBAC_KEY);
     }
+    await refreshMemberModules(authToken);
     localStorage.setItem(TOKEN_KEY, authToken);
     localStorage.setItem(USER_KEY, JSON.stringify(me.user ?? authUser));
   }
@@ -91,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setRbac(null);
+    setMemberModules([]);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(RBAC_KEY);
@@ -101,6 +117,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (rbac) return;
     void refreshRbac().catch(() => undefined);
   }, [token, user, rbac]);
+
+  useEffect(() => {
+    if (!token || !user || user.role !== 'member') return;
+    void refreshMemberModules(token);
+  }, [token, user]);
 
   function hasPermission(permission: string) {
     if (user?.isRoot) return true;
@@ -114,9 +135,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   function hasModule(moduleSlug: string) {
     if (user?.isRoot) return true;
+    if (user?.role === 'member') {
+      return memberModules.includes('*') || memberModules.includes(moduleSlug);
+    }
     if (!rbac) {
       if (user?.role === 'admin' || user?.role === 'superadmin') return false;
-      return moduleSlug === 'todokarta';
+      return false;
     }
     return rbac.modules.includes('*') || rbac.modules.includes(moduleSlug);
   }
@@ -141,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signup,
       logout,
     }),
-    [token, user, rbac, permissions, modules, roles],
+    [token, user, rbac, permissions, modules, roles, memberModules],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

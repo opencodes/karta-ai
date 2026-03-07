@@ -6,7 +6,6 @@ import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 import { createAuthToken } from '../utils/token.js';
 import type { UserDto, UserRecord } from '../types.js';
 import { roleToSubscription } from '../modules/core/billing.js';
-import { ensureFreeTodoAccess } from '../modules/core/freeAccess.js';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -141,8 +140,6 @@ authRouter.post('/signup', async (req, res) => {
     return res.status(500).json({ error: 'Failed to create user' });
   }
 
-  await ensureFreeTodoAccess(row.id);
-
   const user = toUserDto(row);
   const token = createAuthToken({
     sub: user.id,
@@ -176,8 +173,6 @@ authRouter.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  await ensureFreeTodoAccess(row.id);
-
   const user = toUserDto(row);
   const token = createAuthToken({
     sub: user.id,
@@ -203,8 +198,6 @@ authRouter.get('/me', requireAuth, async (req, res) => {
   if (!row) {
     return res.status(401).json({ error: 'User not found or inactive' });
   }
-
-  await ensureFreeTodoAccess(row.id);
 
   return res.json({ user: toUserDto(row) });
 });

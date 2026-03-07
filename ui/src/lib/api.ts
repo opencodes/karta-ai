@@ -302,7 +302,7 @@ export type OrgModule = {
   is_core: 0 | 1;
   is_active: 0 | 1;
   organization_module_id: string | null;
-  status: 'active' | 'trial' | 'expired' | 'suspended' | null;
+  status: 'active' | 'expired' | 'suspended' | null;
   starts_at: string | null;
   expires_at: string | null;
 };
@@ -312,7 +312,7 @@ export type OrgMemberModuleAccess = {
   name: string;
   slug: string;
   display_name: string | null;
-  organization_module_status: 'active' | 'trial' | 'expired' | 'suspended' | null;
+  organization_module_status: 'active' | 'expired' | 'suspended' | null;
   access_granted: 0 | 1 | null;
   expires_at: string | null;
 };
@@ -484,7 +484,7 @@ export async function listOrgAdminModules(token: string): Promise<{ modules: Org
 export async function updateOrgAdminModule(
   token: string,
   moduleId: string,
-  payload: { status: 'active' | 'trial' | 'expired' | 'suspended'; startsAt?: string | null; expiresAt?: string | null },
+  payload: { status: 'active' | 'expired' | 'suspended'; startsAt?: string | null; expiresAt?: string | null },
 ): Promise<{ message: string }> {
   return request(`/api/org-admin/modules/${moduleId}`, {
     method: 'PATCH',
@@ -572,6 +572,38 @@ export type BillingModuleItem = {
 
 export async function listBillingModules(token: string): Promise<{ modules: BillingModuleItem[] }> {
   return request('/api/billing/admin/modules', { token });
+}
+
+export type OrgModulePurchaseRequest = {
+  subscriptionId: string;
+  organizationId: string;
+  organizationName: string;
+  organizationSlug: string;
+  planId: string;
+  planName: string;
+  planDisplayName: string | null;
+  modules: string[];
+  status: 'pending_approval' | 'approved' | 'active' | 'rejected';
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listOrgModulePurchaseRequests(token: string): Promise<{ requests: OrgModulePurchaseRequest[] }> {
+  return request('/api/billing/admin/org-module-requests', { token });
+}
+
+export async function resolveOrgModulePurchaseRequest(
+  token: string,
+  subscriptionId: string,
+  action: 'approved' | 'rejected',
+): Promise<{ message: string }> {
+  return request(`/api/billing/admin/org-module-requests/${subscriptionId}`, {
+    method: 'PATCH',
+    token,
+    body: { action },
+  });
 }
 
 export async function listOrgAdminApiKeys(token: string): Promise<{ apiKeys: OrgApiKey[] }> {

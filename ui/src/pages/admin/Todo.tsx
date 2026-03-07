@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Clock3, ListTodo, Repeat, Star, Wallet } from 'lucide-react';
+import { CalendarDays, Clock3, ListTodo, Lock, Repeat, Star, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
-import { featureTask, listTasks, type TaskItem } from '../../lib/api';
+import { createModuleAccessRequest, featureTask, getMyAccess, listMyModuleAccessRequests, listTasks, type TaskItem } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 function isInNextHours(dateIso: string, hours: number): boolean {
@@ -121,12 +122,65 @@ function SpotlightTaskCard() {
 }
 
 export const TodoPage = () => {
-  const { token, logout } = useAuth();
+  const { token, user, logout } = useAuth();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [error, setError] = useState('');
+  const [hasAccess, setHasAccess] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [requestState, setRequestState] = useState('');
+  const [isRequestPending, setIsRequestPending] = useState(false);
+
+  useEffect(() => {
+    async function loadAccess() {
+      if (!token) return;
+
+      try {
+        if (user?.isRoot || user?.role === 'root') {
+          setHasAccess(true);
+          return;
+        }
+
+        const access = await getMyAccess(token);
+        setHasAccess(access.modules.includes('*') || access.modules.includes('todokarta'));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load module access';
+        if (message.toLowerCase().includes('unauthorized')) logout();
+        setError(message);
+      } finally {
+        setCheckingAccess(false);
+      }
+    }
+
+    void loadAccess();
+  }, [token, user, logout]);
+
+  useEffect(() => {
+    async function loadRequestStatus() {
+      if (!token || user?.role !== 'member' || hasAccess) return;
+      try {
+        const data = await listMyModuleAccessRequests(token);
+        const latest = data.requests
+          .filter((item) => item.module_name === 'todokarta')
+          .sort((a, b) => (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))[0];
+
+        const pending = latest?.status === 'pending';
+        setIsRequestPending(pending);
+        if (pending) {
+          setRequestState('Request submitted to your organization admin. Awaiting approval.');
+        } else {
+          setRequestState('');
+        }
+      } catch {
+        setIsRequestPending(false);
+      }
+    }
+
+    void loadRequestStatus();
+  }, [token, user, hasAccess]);
 
   const loadTasks = useCallback(async () => {
-    if (!token) return;
+    if (!token || !hasAccess) return;
     try {
       const response = await listTasks(token, 'all');
       setTasks(response.tasks);
@@ -136,18 +190,19 @@ export const TodoPage = () => {
       if (message.toLowerCase().includes('unauthorized')) logout();
       setError(message);
     }
-  }, [token, logout]);
+  }, [token, logout, hasAccess]);
 
   useEffect(() => {
+    if (!hasAccess) return;
     void loadTasks();
-  }, [loadTasks]);
+  }, [loadTasks, hasAccess]);
 
   const nowTasks = useMemo(() => tasks.filter((task) => isInNextHours(task.dueDate, 4)), [tasks]);
   const laterTasks = useMemo(() => tasks.filter((task) => !isInNextHours(task.dueDate, 4)), [tasks]);
   const featuredTasks = useMemo(() => tasks.filter((task) => task.featured), [tasks]);
 
   async function toggleFeature(item: TaskItem) {
-    if (!token) return;
+    if (!token || !hasAccess) return;
     try {
       await featureTask(token, item.id, !item.featured);
       await loadTasks();
@@ -156,6 +211,58 @@ export const TodoPage = () => {
       if (message.toLowerCase().includes('unauthorized')) logout();
       setError(message);
     }
+  }
+
+  if (checkingAccess) {
+    return (
+      <Card className="p-6">
+        <p className="text-sm text-slate-400">Checking module access...</p>
+      </Card>
+    );
+  }
+
+  if (!hasAccess) {
+    const canRequest = user?.role === 'member';
+    return (
+      <Card className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="text-center space-y-3 max-w-md">
+          <div className="mx-auto w-12 h-12 rounded-full border border-teal/40 bg-teal/10 flex items-center justify-center">
+            <Lock className="w-5 h-5 text-teal" />
+          </div>
+          <p className="text-lg font-semibold text-heading">TodoKarta Locked</p>
+          <p className="text-sm text-slate-400">Subscribe to access TodoKarta features.</p>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/subscription')}
+            disabled={isRequestPending}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 w-fit disabled:opacity-50"
+          >
+            Subscribe to Access
+          </button>
+          {canRequest ? (
+            <button
+              type="button"
+              onClick={async () => {
+                if (!token) return;
+                setRequestState('Submitting...');
+                try {
+                  await createModuleAccessRequest(token, { moduleSlug: 'todokarta' });
+                  setIsRequestPending(true);
+                  setRequestState('Request submitted to your organization admin.');
+                } catch (err) {
+                  setRequestState(err instanceof Error ? err.message : 'Failed to submit request');
+                }
+              }}
+              disabled={isRequestPending}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 w-fit disabled:opacity-50"
+            >
+              {isRequestPending ? 'Request Pending' : 'Request Access'}
+            </button>
+          ) : null}
+          {requestState ? <p className="text-xs text-slate-400">{requestState}</p> : null}
+        </div>
+      </Card>
+    );
   }
 
   return (

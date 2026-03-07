@@ -136,7 +136,7 @@ export async function getOrganizationActiveModules(organizationId: string): Prom
      FROM organization_modules om
      INNER JOIN modules m ON m.id = om.module_id
      WHERE om.organization_id = ?
-       AND om.status IN ('active', 'trial')
+       AND om.status = 'active'
        AND (om.starts_at IS NULL OR om.starts_at <= UTC_TIMESTAMP())
        AND (om.expires_at IS NULL OR om.expires_at > UTC_TIMESTAMP())
        AND m.is_active = 1`,

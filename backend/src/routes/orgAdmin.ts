@@ -46,7 +46,7 @@ const updateRolePermissionsSchema = z.object({
 });
 
 const updateModuleSchema = z.object({
-  status: z.enum(['active', 'trial', 'expired', 'suspended']),
+  status: z.enum(['active', 'expired', 'suspended']),
   startsAt: z.string().datetime().nullable().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
 });
@@ -97,21 +97,6 @@ function parseModules(value: string | null): string[] {
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean);
-}
-
-async function enableOrganizationModulesForPlan(organizationId: string, planId: string) {
-  await pool.query(
-    `INSERT INTO organization_modules (id, organization_id, module_id, status, starts_at, expires_at)
-     SELECT UUID(), ?, pm.module_id, 'active', UTC_TIMESTAMP(), NULL
-     FROM plan_modules pm
-     WHERE pm.plan_id = ?
-       AND pm.is_enabled = 1
-     ON DUPLICATE KEY UPDATE
-       status = 'active',
-       starts_at = UTC_TIMESTAMP(),
-       expires_at = NULL`,
-    [organizationId, planId],
-  );
 }
 
 async function getOrganizationSubscriptionDetails(organizationId: string) {
@@ -186,7 +171,7 @@ orgAdminRouter.post('/module-requests', async (req, res) => {
      INNER JOIN modules m ON m.id = organization_modules.module_id
      WHERE organization_id = ?
        AND m.slug = ?
-       AND status IN ('active', 'trial')
+       AND status = 'active'
      LIMIT 1`,
     [orgId, payload.moduleSlug],
   );
@@ -566,7 +551,7 @@ orgAdminRouter.get('/users/:id/modules', async (req, res) => {
        ON uma.user_id = ?
       AND uma.module_id = m.id
      WHERE om.organization_id = ?
-       AND om.status IN ('active', 'trial')
+       AND om.status = 'active'
      ORDER BY m.name ASC`,
     [userId, orgId],
   );
@@ -614,7 +599,7 @@ orgAdminRouter.patch('/users/:id/modules', async (req, res) => {
      FROM organization_modules
      WHERE organization_id = ?
        AND module_id = ?
-       AND status IN ('active', 'trial')
+       AND status = 'active'
      LIMIT 1`,
     [orgId, payload.moduleId],
   );
@@ -964,7 +949,6 @@ orgAdminRouter.get('/billing/catalog/modules', async (req, res) => {
      ) single_module_plans ON single_module_plans.plan_id = pm.plan_id
      INNER JOIN subscription_plans sp ON sp.id = single_module_plans.plan_id AND sp.is_active = 1
      WHERE m.is_active = 1
-       AND IFNULL(sp.price_monthly, 0) > 0
      ORDER BY m.display_name ASC`,
   );
 
@@ -1009,7 +993,6 @@ orgAdminRouter.post('/billing/buy-module', async (req, res) => {
      INNER JOIN modules m ON m.id = pm.module_id AND m.is_active = 1
      WHERE m.name = ?
        AND sp.is_active = 1
-       AND IFNULL(sp.price_monthly, 0) > 0
      GROUP BY sp.id
      HAVING COUNT(pm.module_id) = 1
      LIMIT 1`,
@@ -1023,14 +1006,13 @@ orgAdminRouter.post('/billing/buy-module', async (req, res) => {
 
   await pool.query(
     `INSERT INTO organization_subscriptions (id, organization_id, plan_id, status, start_date, end_date, auto_renew)
-     VALUES (UUID(), ?, ?, 'active', UTC_TIMESTAMP(), NULL, 1)
-     ON DUPLICATE KEY UPDATE status = 'active', start_date = UTC_TIMESTAMP(), end_date = NULL, updated_at = CURRENT_TIMESTAMP`,
+     VALUES (UUID(), ?, ?, 'pending_approval', NULL, NULL, 1)
+     ON DUPLICATE KEY UPDATE status = 'pending_approval', start_date = NULL, end_date = NULL, updated_at = CURRENT_TIMESTAMP`,
     [orgId, planId],
   );
-  await enableOrganizationModulesForPlan(orgId, planId);
 
   const subscriptions = await getOrganizationSubscriptionDetails(orgId);
-  return res.status(201).json({ message: 'Module purchased for organization', subscriptions });
+  return res.status(201).json({ message: 'Module purchase request submitted for root approval', subscriptions });
 });
 
 

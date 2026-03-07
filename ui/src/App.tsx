@@ -70,8 +70,8 @@ const App = () => {
               <Route path="/root/modules" element={user?.isRoot ? <RootBillingPage /> : <LockedAccess message="Root access required." />} />
               <Route path="/org-console" element={isOrgAdmin || user?.isRoot ? <OrgAdminConsolePage /> : <LockedAccess message="Organization admin access required." />} />
               <Route path="/org-users" element={isOrgAdmin || user?.isRoot ? <OrgAdminUsersPage /> : <LockedAccess message="Organization admin access required." />} />
-              <Route path="/todo" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <TodoPage />} />
-              <Route path="/todokarta" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <TodoPage />} />
+              <Route path="/todo" element={<TodoPage />} />
+              <Route path="/todokarta" element={<TodoPage />} />
               <Route path="/dashboard" element={<AdminDashboard />} />
               <Route
                 path="/subscription"
@@ -80,8 +80,8 @@ const App = () => {
               <Route path="/billing" element={<Navigate to="/admin/subscription" replace />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/account" element={<Navigate to="/admin/profile" replace />} />
-              <Route path="/edukarta" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <EduKartaPage />} />
-              <Route path="/prepkarta" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <PrepKartaPage />} />
+              <Route path="/edukarta" element={<EduKartaPage />} />
+              <Route path="/prepkarta" element={<PrepKartaPage />} />
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/contacts" element={<Contacts />} />

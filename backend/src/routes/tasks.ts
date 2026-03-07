@@ -4,6 +4,8 @@ import { pool } from '../db.js';
 import { toTaskDto, isInNextHours } from '../utils/taskMapper.js';
 import { parseTaskInputWithAi } from '../utils/taskParser.js';
 import type { TaskRecord } from '../types.js';
+import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
+import { isOrganizationEntitledToModule, isUserEntitledToModule } from '../modules/core/accessControl.js';
 
 const createTaskSchema = z.object({
   rawInput: z.string().trim().min(1),
@@ -18,6 +20,38 @@ const featureSchema = z.object({
 });
 
 export const tasksRouter = Router();
+
+tasksRouter.use(requireAuth);
+tasksRouter.use(async (req, res, next) => {
+  try {
+    const authed = req as AuthedRequest;
+    const moduleName = 'todokarta';
+
+    if (authed.user.isRoot || authed.user.role === 'root') {
+      return next();
+    }
+
+    if (authed.user.organizationId) {
+      const hasOrganizationAccess = await isOrganizationEntitledToModule(authed.user.organizationId, moduleName);
+      if (!hasOrganizationAccess) {
+        return res.status(403).json({ error: `Organization subscription required or pending approval for module: ${moduleName}` });
+      }
+    }
+
+    if (authed.user.role === 'admin' || authed.user.role === 'superadmin') {
+      return next();
+    }
+
+    const hasUserAccess = await isUserEntitledToModule(authed.user.id, moduleName);
+    if (!hasUserAccess) {
+      return res.status(403).json({ error: `Access revoked for module: ${moduleName}` });
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+});
 
 tasksRouter.post('/parse-create', async (req, res) => {
   const parsedBody = createTaskSchema.safeParse(req.body);

@@ -238,7 +238,7 @@ export function OrgAdminConsolePage() {
     }
   }
 
-  async function onModuleStatusChange(moduleId: string, status: 'active' | 'trial' | 'expired' | 'suspended') {
+  async function onModuleStatusChange(moduleId: string, status: 'active' | 'expired' | 'suspended') {
     if (!token) return;
     setBusy(`module:${moduleId}`);
     try {
@@ -300,20 +300,26 @@ export function OrgAdminConsolePage() {
     [roles, selectedRoleId],
   );
 
-  const subscribedModuleNames = useMemo(() => {
-    const names = new Set<string>();
+  const visibleOrgModules = useMemo(
+    () => (canUpdateOrgModules ? modules : modules.filter((module) => module.status !== null)),
+    [canUpdateOrgModules, modules],
+  );
+
+  const moduleSubscriptionStatus = useMemo(() => {
+    const statuses = new Map<string, string>();
     orgBillingSubscriptions.forEach((item) => {
+      const status = String(item.status ?? '').toLowerCase();
       const plan = item.plan as Record<string, unknown> | undefined;
       const modules = (plan?.modules ?? []) as unknown;
       if (Array.isArray(modules)) {
         modules.forEach((name) => {
           if (typeof name === 'string' && name.trim()) {
-            names.add(name.trim().toLowerCase());
+            statuses.set(name.trim().toLowerCase(), status);
           }
         });
       }
     });
-    return names;
+    return statuses;
   }, [orgBillingSubscriptions]);
 
   if (!allowed) {
@@ -394,32 +400,34 @@ export function OrgAdminConsolePage() {
           </Card>
         ) : null}
 
-        <Card title="Modules (Enable / Configure)" className="scroll-mt-24" id="org-modules">
-          {!canUpdateOrgModules ? (
-            <p className="text-xs text-slate-500 mb-2">Only root can update module subscriptions. Org admins can buy modules below.</p>
-          ) : null}
-          <div className="space-y-2 max-h-80 overflow-y-auto">
-            {modules.map((module) => (
-              <div key={module.id} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs text-slate-100">{module.display_name ?? module.name}</p>
-                  <p className="text-[11px] text-slate-400">slug: {module.slug} • current: {module.status ?? 'not-configured'}</p>
-                </div>
-                <select
-                  value={module.status ?? 'trial'}
-                  disabled={!canUpdateOrgModules || busy === `module:${module.id}`}
-                  onChange={(e) => void onModuleStatusChange(module.id, e.target.value as 'active' | 'trial' | 'expired' | 'suspended')}
-                  className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200"
-                >
-                  <option value="active">active</option>
-                  <option value="trial">trial</option>
-                  <option value="expired">expired</option>
-                  <option value="suspended">suspended</option>
-                </select>
+        {canUpdateOrgModules ? (
+          <Card title="Modules (Enable / Configure)" className="scroll-mt-24" id="org-modules">
+            {visibleOrgModules.length === 0 ? (
+              <p className="text-sm text-slate-500">No subscribed modules yet.</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {visibleOrgModules.map((module) => (
+                  <div key={module.id} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs text-slate-100">{module.display_name ?? module.name}</p>
+                      <p className="text-[11px] text-slate-400">slug: {module.slug} • current: {module.status ?? 'not-configured'}</p>
+                    </div>
+                    <select
+                      value={module.status ?? 'active'}
+                      disabled={busy === `module:${module.id}`}
+                      onChange={(e) => void onModuleStatusChange(module.id, e.target.value as 'active' | 'expired' | 'suspended')}
+                      className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200"
+                    >
+                      <option value="active">active</option>
+                      <option value="expired">expired</option>
+                      <option value="suspended">suspended</option>
+                    </select>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </Card>
+            )}
+          </Card>
+        ) : null}
       </div>
 
       <Card title="Grant Module Access to Members" className="scroll-mt-24" id="org-member-access">
@@ -533,7 +541,9 @@ export function OrgAdminConsolePage() {
         <div className="space-y-2">
           {orgCatalogModules.map((item, idx) => {
             const moduleName = String(item.module_name ?? '');
-            const isSubscribed = subscribedModuleNames.has(moduleName.toLowerCase());
+            const subscriptionStatus = moduleSubscriptionStatus.get(moduleName.toLowerCase()) ?? '';
+            const isPendingApproval = subscriptionStatus === 'pending_approval';
+            const isSubscribed = ['active', 'approved'].includes(subscriptionStatus);
             return (
               <div key={`${moduleName}-${idx}`} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
                 <div>
@@ -543,10 +553,10 @@ export function OrgAdminConsolePage() {
                 <button
                   type="button"
                   onClick={() => void onBuyOrgModule(moduleName)}
-                  disabled={isSubscribed || busy === `buy-org-module:${moduleName}`}
+                  disabled={isSubscribed || isPendingApproval || busy === `buy-org-module:${moduleName}`}
                   className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
                 >
-                  {isSubscribed ? 'Subscribed' : 'Buy'}
+                  {isPendingApproval ? 'Pending approval' : isSubscribed ? 'Subscribed' : 'Buy'}
                 </button>
               </div>
             );

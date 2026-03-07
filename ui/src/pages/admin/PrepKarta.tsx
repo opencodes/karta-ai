@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, Lock } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
-import { createModuleAccessRequest } from '../../lib/api';
+import { createModuleAccessRequest, listMyModuleAccessRequests } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 export function PrepKartaPage() {
@@ -11,6 +11,7 @@ export function PrepKartaPage() {
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState('');
   const [requestState, setRequestState] = useState('');
+  const [isRequestPending, setIsRequestPending] = useState(false);
 
   useEffect(() => {
     async function loadAccess() {
@@ -32,6 +33,30 @@ export function PrepKartaPage() {
     void loadAccess();
   }, [user, logout, refreshRbac, hasModule]);
 
+  useEffect(() => {
+    async function loadRequestStatus() {
+      if (!token || user?.role !== 'member' || hasAccess) return;
+      try {
+        const data = await listMyModuleAccessRequests(token);
+        const latest = data.requests
+          .filter((item) => item.module_name === 'prepkarta')
+          .sort((a, b) => (new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))[0];
+
+        const pending = latest?.status === 'pending';
+        setIsRequestPending(pending);
+        if (pending) {
+          setRequestState('Request submitted to your organization admin. Awaiting approval.');
+        } else {
+          setRequestState('');
+        }
+      } catch {
+        setIsRequestPending(false);
+      }
+    }
+
+    void loadRequestStatus();
+  }, [token, user, hasAccess]);
+
   if (error) {
     return <Card className="p-6"><p className="text-red-400 text-sm">{error}</p></Card>;
   }
@@ -49,7 +74,8 @@ export function PrepKartaPage() {
           <button
             type="button"
             onClick={() => navigate('/admin/subscription')}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 w-fit"
+            disabled={isRequestPending}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 w-fit disabled:opacity-50"
           >
             Subscribe to Access
           </button>
@@ -61,14 +87,16 @@ export function PrepKartaPage() {
                 setRequestState('Submitting...');
                 try {
                   await createModuleAccessRequest(token, { moduleSlug: 'prepkarta' });
+                  setIsRequestPending(true);
                   setRequestState('Request submitted to your organization admin.');
                 } catch (err) {
                   setRequestState(err instanceof Error ? err.message : 'Failed to submit request');
                 }
               }}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 w-fit"
+              disabled={isRequestPending}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 w-fit disabled:opacity-50"
             >
-              Request Access
+              {isRequestPending ? 'Request Pending' : 'Request Access'}
             </button>
           ) : null}
           {requestState ? <p className="text-xs text-slate-400">{requestState}</p> : null}

@@ -20,6 +20,10 @@ const createModuleSchema = z.object({
   isActive: z.boolean().optional().default(true),
 });
 
+const resolveOrgSubscriptionSchema = z.object({
+  action: z.enum(['approved', 'rejected']),
+});
+
 export const billingRouter = Router();
 
 type PlanRow = {
@@ -42,21 +46,6 @@ function parseModules(value: PlanRow['modules']): string[] {
       .filter((item) => item.length > 0);
   }
   return [];
-}
-
-async function enableOrganizationModulesForPlan(organizationId: string, planId: string) {
-  await pool.query(
-    `INSERT INTO organization_modules (id, organization_id, module_id, status, starts_at, expires_at)
-     SELECT UUID(), ?, pm.module_id, 'active', UTC_TIMESTAMP(), NULL
-     FROM plan_modules pm
-     WHERE pm.plan_id = ?
-       AND pm.is_enabled = 1
-     ON DUPLICATE KEY UPDATE
-       status = 'active',
-       starts_at = UTC_TIMESTAMP(),
-       expires_at = NULL`,
-    [organizationId, planId],
-  );
 }
 
 async function getUserSubscriptionDetails(userId: string) {
@@ -200,6 +189,155 @@ billingRouter.post('/admin/modules', requireAuth, async (req, res) => {
   return res.status(201).json({ message: 'Module created' });
 });
 
+billingRouter.get('/admin/org-module-requests', requireAuth, async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+  if (!authed.isRoot && authed.role !== 'root') {
+    return res.status(403).json({ error: 'Root access required' });
+  }
+
+  const [rows] = await pool.query(
+    `SELECT os.id AS subscription_id,
+            os.organization_id,
+            os.plan_id,
+            os.status,
+            os.start_date,
+            os.end_date,
+            os.created_at,
+            os.updated_at,
+            o.name AS organization_name,
+            o.slug AS organization_slug,
+            sp.name AS plan_name,
+            sp.display_name AS plan_display_name,
+            IFNULL(GROUP_CONCAT(DISTINCT m.name ORDER BY m.name SEPARATOR ','), '') AS modules
+     FROM organization_subscriptions os
+     INNER JOIN organizations o ON o.id = os.organization_id
+     INNER JOIN subscription_plans sp ON sp.id = os.plan_id
+     LEFT JOIN plan_modules pm ON pm.plan_id = sp.id AND pm.is_enabled = 1
+     LEFT JOIN modules m ON m.id = pm.module_id
+     WHERE os.status IN ('pending_approval', 'approved', 'rejected')
+     GROUP BY os.id, os.organization_id, os.plan_id, os.status, os.start_date, os.end_date, os.created_at, os.updated_at,
+              o.name, o.slug, sp.name, sp.display_name
+     ORDER BY os.updated_at DESC`,
+  );
+
+  const requests = (rows as Array<{
+    subscription_id: string;
+    organization_id: string;
+    plan_id: string;
+    status: string;
+    start_date: string | null;
+    end_date: string | null;
+    created_at: string;
+    updated_at: string;
+    organization_name: string;
+    organization_slug: string;
+    plan_name: string;
+    plan_display_name: string | null;
+    modules: string | null;
+  }>).map((row) => ({
+    subscriptionId: row.subscription_id,
+    organizationId: row.organization_id,
+    planId: row.plan_id,
+    status: row.status,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    organizationName: row.organization_name,
+    organizationSlug: row.organization_slug,
+    planName: row.plan_name,
+    planDisplayName: row.plan_display_name,
+    modules: parseModules(row.modules),
+  }));
+
+  return res.json({ requests });
+});
+
+billingRouter.patch('/admin/org-module-requests/:subscriptionId', requireAuth, async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+  if (!authed.isRoot && authed.role !== 'root') {
+    return res.status(403).json({ error: 'Root access required' });
+  }
+
+  const parsed = resolveOrgSubscriptionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  const subscriptionId = req.params.subscriptionId;
+  const [rows] = await pool.query(
+    `SELECT id, organization_id, plan_id, status
+     FROM organization_subscriptions
+     WHERE id = ?
+     LIMIT 1`,
+    [subscriptionId],
+  );
+
+  const subscription = (rows as Array<{
+    id: string;
+    organization_id: string;
+    plan_id: string;
+    status: string;
+  }>)[0];
+
+  if (!subscription) {
+    return res.status(404).json({ error: 'Organization module request not found' });
+  }
+
+  if (subscription.status !== 'pending_approval') {
+    return res.status(400).json({ error: 'Only pending requests can be processed' });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    if (parsed.data.action === 'approved') {
+      await connection.query(
+        `UPDATE organization_subscriptions
+         SET status = 'approved', start_date = UTC_TIMESTAMP(), end_date = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [subscriptionId],
+      );
+
+      await connection.query(
+        `INSERT INTO organization_modules (id, organization_id, module_id, status, starts_at, expires_at)
+         SELECT UUID(), ?, pm.module_id, 'active', UTC_TIMESTAMP(), NULL
+         FROM plan_modules pm
+         WHERE pm.plan_id = ?
+           AND pm.is_enabled = 1
+         ON DUPLICATE KEY UPDATE
+           status = 'active',
+           starts_at = UTC_TIMESTAMP(),
+           expires_at = NULL`,
+        [subscription.organization_id, subscription.plan_id],
+      );
+      await connection.query(
+        `UPDATE organization_subscriptions
+         SET status = 'active', updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [subscriptionId],
+      );
+    } else {
+      await connection.query(
+        `UPDATE organization_subscriptions
+         SET status = 'rejected', end_date = UTC_TIMESTAMP(), updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [subscriptionId],
+      );
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  return res.json({ message: parsed.data.action === 'approved' ? 'Request approved' : 'Request rejected' });
+});
+
 billingRouter.get('/my-access', requireAuth, async (req, res) => {
   const authed = (req as AuthedRequest).user;
 
@@ -232,6 +370,10 @@ billingRouter.post('/buy-module', requireAuth, async (req, res) => {
   }
 
   const authed = (req as AuthedRequest).user;
+  if (authed.role === 'admin' || authed.role === 'superadmin') {
+    return res.status(403).json({ error: 'Organization admins must use organization billing purchase flow' });
+  }
+
   const userId = authed.id;
   const { moduleName } = parsed.data;
 
@@ -261,11 +403,6 @@ billingRouter.post('/buy-module', requireAuth, async (req, res) => {
     [userId, planId],
   );
 
-  if ((authed.role === 'admin' || authed.role === 'superadmin') && authed.organizationId) {
-    await enableOrganizationModulesForPlan(authed.organizationId, planId);
-  }
-
   const modules = await getUserEntitledModules(userId);
   return res.status(201).json({ message: 'Module purchased', modules });
 });
-

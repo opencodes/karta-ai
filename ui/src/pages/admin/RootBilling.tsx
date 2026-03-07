@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { PackagePlus, ShieldCheck } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
-import { createBillingModule, listBillingModules, type BillingModuleItem } from '../../lib/api';
+import {
+  createBillingModule,
+  listBillingModules,
+  listOrgModulePurchaseRequests,
+  resolveOrgModulePurchaseRequest,
+  type BillingModuleItem,
+  type OrgModulePurchaseRequest,
+} from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 export function RootBillingPage() {
   const { token, user } = useAuth();
   const [modules, setModules] = useState<BillingModuleItem[]>([]);
+  const [requests, setRequests] = useState<OrgModulePurchaseRequest[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
 
@@ -33,8 +41,12 @@ export function RootBillingPage() {
     async function loadModules() {
       if (!token) return;
       try {
-        const data = await listBillingModules(token);
-        setModules(data.modules);
+        const [modulesData, requestsData] = await Promise.all([
+          listBillingModules(token),
+          listOrgModulePurchaseRequests(token),
+        ]);
+        setModules(modulesData.modules);
+        setRequests(requestsData.requests);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load modules');
       }
@@ -42,6 +54,21 @@ export function RootBillingPage() {
 
     void loadModules();
   }, [token]);
+
+  async function onResolveRequest(subscriptionId: string, action: 'approved' | 'rejected') {
+    if (!token) return;
+    setBusy(`request:${subscriptionId}:${action}`);
+    try {
+      await resolveOrgModulePurchaseRequest(token, subscriptionId, action);
+      const requestsData = await listOrgModulePurchaseRequests(token);
+      setRequests(requestsData.requests);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resolve organization request');
+    } finally {
+      setBusy('');
+    }
+  }
 
   async function onCreateModule() {
     if (!token) return;
@@ -110,6 +137,45 @@ export function RootBillingPage() {
                 </p>
               </div>
             ))}
+          </div>
+        )}
+      </Card>
+
+      <Card title="Organization Module Requests">
+        {requests.filter((item) => item.status === 'pending_approval').length === 0 ? (
+          <p className="text-sm text-slate-500">No pending requests.</p>
+        ) : (
+          <div className="space-y-2">
+            {requests
+              .filter((item) => item.status === 'pending_approval')
+              .map((item) => (
+                <div key={item.subscriptionId} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                  <p className="text-sm font-semibold text-heading">
+                    {item.organizationName} ({item.organizationSlug})
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    plan: {item.planDisplayName ?? item.planName} • modules: {item.modules.join(', ') || 'n/a'}
+                  </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void onResolveRequest(item.subscriptionId, 'approved')}
+                      disabled={busy === `request:${item.subscriptionId}:approved`}
+                      className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onResolveRequest(item.subscriptionId, 'rejected')}
+                      disabled={busy === `request:${item.subscriptionId}:rejected`}
+                      className="px-2 py-1 rounded text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
         )}
       </Card>

@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { KartaModule } from '../modules/types.js';
 import type { AuthedRequest } from './auth.js';
-import { isUserEntitledToModule } from '../modules/core/accessControl.js';
+import { isOrganizationEntitledToModule, isUserEntitledToModule } from '../modules/core/accessControl.js';
 
 export function requireModuleAccess(moduleDef: KartaModule) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -17,7 +17,23 @@ export function requireModuleAccess(moduleDef: KartaModule) {
       }
 
       if (authed.user.role === 'admin' || authed.user.role === 'superadmin') {
-        return res.status(403).json({ error: 'Organization admins cannot access module workspaces' });
+        if (!authed.user.organizationId) {
+          return res.status(400).json({ error: 'Organization not assigned' });
+        }
+
+        const hasOrganizationAccess = await isOrganizationEntitledToModule(authed.user.organizationId, moduleDef.name);
+        if (!hasOrganizationAccess) {
+          return res.status(403).json({ error: `Organization subscription required or pending approval for module: ${moduleDef.name}` });
+        }
+
+        return next();
+      }
+
+      if (authed.user.organizationId) {
+        const hasOrganizationAccess = await isOrganizationEntitledToModule(authed.user.organizationId, moduleDef.name);
+        if (!hasOrganizationAccess) {
+          return res.status(403).json({ error: `Organization subscription required or pending approval for module: ${moduleDef.name}` });
+        }
       }
 
       const hasAccess = await isUserEntitledToModule(authed.user.id, moduleDef.name);
