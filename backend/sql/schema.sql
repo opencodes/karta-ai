@@ -8,6 +8,8 @@ DROP TRIGGER IF EXISTS trg_users_prevent_root_delete;
 DROP TABLE IF EXISTS feature_usage_logs;
 DROP TABLE IF EXISTS module_usage;
 DROP TABLE IF EXISTS user_module_access;
+DROP TABLE IF EXISTS edukarta_subject_chapters;
+DROP TABLE IF EXISTS edukarta_student_profiles;
 DROP TABLE IF EXISTS user_subscriptions;
 DROP TABLE IF EXISTS organization_subscriptions;
 DROP TABLE IF EXISTS plan_module_features;
@@ -64,6 +66,38 @@ CREATE TABLE users (
   INDEX idx_users_org (organization_id),
   CONSTRAINT fk_users_organization
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE edukarta_student_profiles (
+  user_id CHAR(36) PRIMARY KEY,
+  organization_id CHAR(36) NULL,
+  name VARCHAR(120) NOT NULL,
+  board VARCHAR(80) NOT NULL,
+  class_level VARCHAR(20) NOT NULL,
+  subjects JSON NOT NULL,
+  completed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_edukarta_student_profiles_org (organization_id),
+  CONSTRAINT fk_edukarta_student_profiles_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_edukarta_student_profiles_org
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
+);
+
+CREATE TABLE edukarta_subject_chapters (
+  id CHAR(36) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  organization_id CHAR(36) NULL,
+  subject VARCHAR(80) NOT NULL,
+  chapter_name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_edukarta_user_subject_chapter (user_id, subject, chapter_name),
+  INDEX idx_edukarta_subject_chapters_user_subject (user_id, subject),
+  CONSTRAINT fk_edukarta_subject_chapters_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_edukarta_subject_chapters_org
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
 );
 
 ALTER TABLE organizations

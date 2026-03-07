@@ -37,6 +37,15 @@ export type TaskItem = {
   updatedAt: string;
 };
 
+export type EduKartaStudentProfile = {
+  name: string;
+  board: string;
+  classLevel: string;
+  subjects: string[];
+  completedAt: string;
+  updatedAt?: string;
+};
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   token?: string | null;
@@ -77,6 +86,61 @@ export async function signup(email: string, password: string): Promise<{ token: 
 
 export async function me(token: string): Promise<{ user: User }> {
   return request('/api/auth/me', { token });
+}
+
+export async function getEduKartaStudentProfile(token: string): Promise<{ profile: EduKartaStudentProfile | null }> {
+  return request('/api/edukarta/profile', { token });
+}
+
+export async function saveEduKartaStudentProfile(
+  token: string,
+  payload: { name: string; board: string; classLevel: string; subjects: string[] },
+): Promise<{ message: string }> {
+  return request('/api/edukarta/profile', {
+    method: 'PUT',
+    token,
+    body: payload,
+  });
+}
+
+export async function listEduKartaSubjectChapters(
+  token: string,
+): Promise<{ chaptersBySubject: Record<string, string[]> }> {
+  return request('/api/edukarta/profile/chapters', { token });
+}
+
+export async function saveEduKartaSubjectChapters(
+  token: string,
+  payload: { subject: string; chapters: string[] },
+): Promise<{ message: string; subject: string; count: number }> {
+  return request('/api/edukarta/profile/chapters', {
+    method: 'PUT',
+    token,
+    body: payload,
+  });
+}
+
+export async function suggestEduKartaChapters(
+  token: string,
+  subject: string,
+  isbn?: string,
+): Promise<{ chapters: string[]; source: 'ai' | 'fallback' | 'book' }> {
+  return request('/api/edukarta/profile/chapters/suggest', {
+    method: 'POST',
+    token,
+    body: { subject, isbn },
+  });
+}
+
+export async function extractEduKartaChaptersFromImage(
+  token: string,
+  payload: { subject: string; imageDataUrl: string },
+): Promise<{ chapters: string[]; source: 'ocr-ai' }> {
+  return request('/api/edukarta/profile/chapters/extract-from-image', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
 }
 
 export async function createTask(token: string, rawInput: string): Promise<{ task: TaskItem }> {

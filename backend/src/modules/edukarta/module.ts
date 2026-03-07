@@ -8,6 +8,7 @@ export const EduKartaModule: KartaModule = {
   backend: {
     routes: [
       { routeKey: 'edukarta.overview', mountPath: '/overview', requiresAuth: true },
+      { routeKey: 'edukarta.profile', mountPath: '/profile', requiresAuth: true },
     ],
   },
   prompts: [

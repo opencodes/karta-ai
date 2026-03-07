@@ -6,7 +6,7 @@ import { createModuleAccessRequest, listMyModuleAccessRequests } from '../../lib
 import { useAuth } from '../../context/AuthContext';
 
 export function PrepKartaPage() {
-  const { token, user, hasModule, refreshRbac, logout } = useAuth();
+  const { token, user, refreshRbac, logout } = useAuth();
   const navigate = useNavigate();
   const [hasAccess, setHasAccess] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ export function PrepKartaPage() {
         }
         const snapshot = await refreshRbac();
         const modules = snapshot?.modules ?? [];
-        setHasAccess(modules.includes('*') || modules.includes('prepkarta') || hasModule('prepkarta'));
+        setHasAccess(modules.includes('*') || modules.includes('prepkarta'));
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load access';
         if (message.toLowerCase().includes('unauthorized')) logout();
@@ -31,7 +31,7 @@ export function PrepKartaPage() {
     }
 
     void loadAccess();
-  }, [user, logout, refreshRbac, hasModule]);
+  }, [user, logout, refreshRbac]);
 
   useEffect(() => {
     async function loadRequestStatus() {

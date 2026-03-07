@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { getMyAccess, getRbacMe, login as loginApi, me as meApi, signup as signupApi, type RbacSnapshot, type User } from '../lib/api';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { getMyAccess, getRbacMe, login as loginApi, signup as signupApi, type RbacSnapshot, type User } from '../lib/api';
 
 type AuthContextType = {
   token: string | null;
@@ -45,15 +45,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [memberModules, setMemberModules] = useState<string[]>([]);
 
-  async function refreshRbac(): Promise<RbacSnapshot | null> {
+  const refreshRbac = useCallback(async (): Promise<RbacSnapshot | null> => {
     if (!token) return null;
     const snapshot = await getRbacMe(token);
     setRbac(snapshot);
     localStorage.setItem(RBAC_KEY, JSON.stringify(snapshot));
     return snapshot;
-  }
+  }, [token]);
 
-  async function refreshMemberModules(currentToken: string): Promise<string[]> {
+  const refreshMemberModules = useCallback(async (currentToken: string): Promise<string[]> => {
     try {
       const access = await getMyAccess(currentToken);
       const modules = access.modules ?? [];
@@ -63,14 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMemberModules([]);
       return [];
     }
-  }
+  }, []);
 
-  async function login(email: string, password: string) {
+  const login = useCallback(async (email: string, password: string) => {
     const { token: authToken, user: authUser } = await loginApi(email, password);
-    // validate token and fetch canonical user
-    const me = await meApi(authToken);
     setToken(authToken);
-    setUser(me.user ?? authUser);
+    setUser(authUser);
     try {
       const snapshot = await getRbacMe(authToken);
       setRbac(snapshot);
@@ -81,14 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     await refreshMemberModules(authToken);
     localStorage.setItem(TOKEN_KEY, authToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(me.user ?? authUser));
-  }
+    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+  }, [refreshMemberModules]);
 
-  async function signup(email: string, password: string) {
+  const signup = useCallback(async (email: string, password: string) => {
     const { token: authToken, user: authUser } = await signupApi(email, password);
-    const me = await meApi(authToken);
     setToken(authToken);
-    setUser(me.user ?? authUser);
+    setUser(authUser);
     try {
       const snapshot = await getRbacMe(authToken);
       setRbac(snapshot);
@@ -99,10 +96,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     await refreshMemberModules(authToken);
     localStorage.setItem(TOKEN_KEY, authToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(me.user ?? authUser));
-  }
+    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
+  }, [refreshMemberModules]);
 
-  function logout() {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     setRbac(null);
@@ -110,20 +107,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(RBAC_KEY);
-  }
+  }, []);
 
   useEffect(() => {
     if (!token || !user) return;
     if (rbac) return;
     void refreshRbac().catch(() => undefined);
-  }, [token, user, rbac]);
+  }, [token, user, rbac, refreshRbac]);
 
   useEffect(() => {
     if (!token || !user || user.role !== 'member') return;
     void refreshMemberModules(token);
-  }, [token, user]);
+  }, [token, user, refreshMemberModules]);
 
-  function hasPermission(permission: string) {
+  const hasPermission = useCallback((permission: string) => {
     if (user?.isRoot) return true;
     if (!rbac) {
       if (user?.role === 'admin' || user?.role === 'superadmin') return true;
@@ -131,9 +128,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
     return rbac.permissions.includes('*') || rbac.permissions.includes(permission);
-  }
+  }, [user, rbac]);
 
-  function hasModule(moduleSlug: string) {
+  const hasModule = useCallback((moduleSlug: string) => {
     if (user?.isRoot) return true;
     if (user?.role === 'member') {
       return memberModules.includes('*') || memberModules.includes(moduleSlug);
@@ -143,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
     return rbac.modules.includes('*') || rbac.modules.includes(moduleSlug);
-  }
+  }, [user, rbac, memberModules]);
 
   const permissions = rbac?.permissions ?? [];
   const modules = rbac?.modules ?? [];
@@ -165,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signup,
       logout,
     }),
-    [token, user, rbac, permissions, modules, roles, memberModules],
+    [token, user, rbac, permissions, modules, roles, hasPermission, hasModule, refreshRbac, login, signup, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

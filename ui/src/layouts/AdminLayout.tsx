@@ -139,7 +139,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         { icon: CircleUserRound, label: 'Profile', path: '/admin/profile', id: 'profile', isLocked: false },
       ]
     : [
-      { icon: Zap, label: 'Admin Home', path: '/admin', id: 'admin_home', isLocked: false },
+      { icon: Zap, label: 'Home', path: '/admin', id: 'admin_home', isLocked: false },
       { icon: ListTodo, label: 'TodoKarta', path: '/admin/todokarta', id: 'todokarta', isLocked: !hasModule('todokarta') },
       { icon: BookOpenCheck, label: 'EduKarta', path: '/admin/edukarta', id: 'edukarta', isLocked: !hasModule('edukarta') },
       { icon: Brain, label: 'PrepKarta', path: '/admin/prepkarta', id: 'prepkarta', isLocked: !hasModule('prepkarta') },

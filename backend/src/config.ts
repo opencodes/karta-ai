@@ -14,8 +14,10 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default('7d'),
   HF_TOKEN: z.preprocess((val) => (val === '' ? undefined : val), z.string().optional()).default(undefined),
-  HF_MODEL: z.string().default('mistralai/Mistral-7B-Instruct-v0.2'),
-  HF_MAX_TOKENS: z.coerce.number().default(300),
+  HF_MODEL: z.string().default('meta-llama/Llama-3.1-8B-Instruct'),
+  HF_OCR_MODEL: z.string().default('deepseek-ai/DeepSeek-OCR'),
+  HF_VISION_MODEL: z.string().default('Qwen/Qwen2.5-VL-7B-Instruct'),
+  HF_MAX_TOKENS: z.coerce.number().default(2000),
 });
 
 const parsed = envSchema.safeParse(process.env);

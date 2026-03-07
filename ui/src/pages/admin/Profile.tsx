@@ -2,7 +2,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { CircleUserRound, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
-import { canPermission, listUsers, updateUserRole, type ManageableUser } from '../../lib/api';
+import {
+  canPermission,
+  getEduKartaStudentProfile,
+  listEduKartaSubjectChapters,
+  listUsers,
+  updateUserRole,
+  type EduKartaStudentProfile,
+  type ManageableUser,
+} from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
 export function ProfilePage() {
@@ -12,6 +20,8 @@ export function ProfilePage() {
   const [savingUserId, setSavingUserId] = useState('');
   const [permissionChecks, setPermissionChecks] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
+  const [studentProfile, setStudentProfile] = useState<EduKartaStudentProfile | null>(null);
+  const [chaptersBySubject, setChaptersBySubject] = useState<Record<string, string[]>>({});
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -66,6 +76,23 @@ export function ProfilePage() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    async function loadStudentProfile() {
+      if (!token || user?.isRoot || user?.role === 'admin' || user?.role === 'superadmin') return;
+      try {
+        const data = await getEduKartaStudentProfile(token);
+        setStudentProfile(data.profile);
+        const chapterData = await listEduKartaSubjectChapters(token);
+        setChaptersBySubject(chapterData.chaptersBySubject ?? {});
+      } catch {
+        setStudentProfile(null);
+        setChaptersBySubject({});
+      }
+    }
+
+    void loadStudentProfile();
+  }, [token, user]);
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -107,6 +134,57 @@ export function ProfilePage() {
           )}
         </div>
       </Card>
+
+      {studentProfile ? (
+        <Card title="EduKarta Student Profile">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl border border-main p-3">
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Student name</p>
+              <p className="text-heading font-semibold">{studentProfile.name}</p>
+            </div>
+            <div className="rounded-xl border border-main p-3">
+              <p className="text-xs uppercase tracking-widest text-slate-500 mb-1">Board and class</p>
+              <p className="text-heading font-semibold">{studentProfile.board} · Class {studentProfile.classLevel}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Subjects</p>
+            <div className="flex flex-wrap gap-2">
+              {studentProfile.subjects.map((subject) => (
+                <span key={subject} className="rounded-full px-3 py-1 text-xs font-semibold border border-teal/40 text-teal bg-teal/10">
+                  {subject}
+                </span>
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-3">
+            Onboarded on {new Date(studentProfile.completedAt).toLocaleString()}
+          </p>
+
+          <div className="mt-4 space-y-2">
+            <p className="text-xs uppercase tracking-widest text-slate-500">Chapters by subject</p>
+            {studentProfile.subjects.map((subject) => {
+              const chapters = chaptersBySubject[subject] ?? [];
+              return (
+                <div key={subject} className="rounded-xl border border-main p-3">
+                  <p className="text-xs font-semibold text-heading mb-2">{subject}</p>
+                  {chapters.length === 0 ? (
+                    <p className="text-xs text-slate-500">No chapters added yet.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {chapters.map((chapter) => (
+                        <span key={`${subject}-${chapter}`} className="rounded-full px-3 py-1 text-xs font-semibold border border-teal/40 text-teal bg-teal/10">
+                          {chapter}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
 
       <Card title="Effective Permissions">
         <div className="flex flex-wrap gap-2">
