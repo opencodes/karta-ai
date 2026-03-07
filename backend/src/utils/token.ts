@@ -1,11 +1,14 @@
 import crypto from 'node:crypto';
 import { env } from '../config.js';
-import type { UserRole } from '../types.js';
+import type { SubscriptionTier, UserRole } from '../types.js';
 
 type TokenPayload = {
   sub: string;
   email: string;
   role: UserRole;
+  isRoot: boolean;
+  organizationId?: string;
+  subscription: SubscriptionTier;
   exp: number;
 };
 
@@ -34,7 +37,14 @@ function expiresInSeconds(expiresIn: string): number {
   return value * 24 * 60 * 60;
 }
 
-export function createAuthToken(input: { sub: string; email: string; role: UserRole }): string {
+export function createAuthToken(input: {
+  sub: string;
+  email: string;
+  role: UserRole;
+  isRoot: boolean;
+  organizationId?: string;
+  subscription: SubscriptionTier;
+}): string {
   const payload: TokenPayload = {
     ...input,
     exp: Math.floor(Date.now() / 1000) + expiresInSeconds(env.JWT_EXPIRES_IN),

@@ -2,9 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import { env } from './config.js';
 import { pool } from './db.js';
-import { tasksRouter } from './routes/tasks.js';
 import { authRouter } from './routes/auth.js';
-import { requireAuth } from './middleware/auth.js';
+import { billingRouter } from './routes/billing.js';
+import { rbacRouter } from './routes/rbac.js';
+import { orgAdminRouter } from './routes/orgAdmin.js';
+import { loadModules } from './modules/loadModules.js';
 
 const app = express();
 
@@ -21,30 +23,30 @@ app.get('/health', async (_req, res) => {
 });
 
 app.use('/api/auth', authRouter);
-app.use('/api/tasks', requireAuth, tasksRouter);
+app.use('/api/billing', billingRouter);
+app.use('/api/rbac', rbacRouter);
+app.use('/api/org-admin', orgAdminRouter);
+loadModules(app);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   return res.status(500).json({ error: 'Internal server error' });
 });
 
-
-// server.js
-import { pool } from "./db.js";
-
 async function start() {
   try {
     const conn = await pool.getConnection();
-    await conn.ping(); // or: await conn.query("SELECT 1");
+    await conn.ping();
     conn.release();
-    console.log("MySQL connected");
+    console.log('MySQL connected');
 
-    app.listen(process.env.PORT || 3000, () => {
-      console.log("Server started");
+    app.listen(env.PORT, () => {
+      console.log(`Server started on port ${env.PORT}`);
     });
   } catch (err) {
-    console.error("MySQL connection failed:", err.message);
-    process.exit(1); // stop app if DB is down
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('MySQL connection failed:', message);
+    process.exit(1);
   }
 }
 

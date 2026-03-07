@@ -4,7 +4,7 @@ import { z } from 'zod';
 dotenv.config();
 
 const envSchema = z.object({
-  PORT: z.coerce.number().default(4000),
+  PORT: z.coerce.number().default(8000),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   MYSQL_HOST: z.string(),
   MYSQL_PORT: z.coerce.number().default(3306),

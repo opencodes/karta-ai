@@ -32,12 +32,16 @@ export type TaskDto = {
   updatedAt: string;
 };
 
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'root' | 'superadmin' | 'admin' | 'member';
+export type SubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE';
 
 export type UserRecord = {
   id: string;
   email: string;
   role: UserRole;
+  is_root: 0 | 1;
+  organization_id: string | null;
+  status: 'active' | 'invited' | 'disabled' | null;
   password_hash: string;
   is_active: 0 | 1;
   created_at: Date;
@@ -48,4 +52,6 @@ export type UserDto = {
   id: string;
   email: string;
   role: UserRole;
+  isRoot: boolean;
+  subscription: SubscriptionTier;
 };

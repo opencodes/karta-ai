@@ -1,11 +1,14 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyAuthToken } from '../utils/token.js';
-import type { UserRole } from '../types.js';
+import type { SubscriptionTier, UserRole } from '../types.js';
 
 export type AuthUser = {
   id: string;
   email: string;
   role: UserRole;
+  isRoot: boolean;
+  organizationId?: string;
+  subscription: SubscriptionTier;
 };
 
 export type AuthedRequest = Request & { user: AuthUser };
@@ -28,6 +31,9 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     id: payload.sub,
     email: payload.email,
     role: payload.role,
+    isRoot: payload.isRoot,
+    organizationId: payload.organizationId,
+    subscription: payload.subscription,
   };
 
   return next();

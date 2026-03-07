@@ -2,14 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
   ListTodo,
+  BookOpenCheck,
+  Brain,
+  CreditCard,
+  Building2,
+  Users,
   Search,
   Settings,
   Zap,
   Bell,
   ArrowDownRight,
   Command,
+  CircleUserRound,
   Sun,
   Moon,
+  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../utils/cn';
@@ -67,7 +75,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   }, []);
 
   const { theme, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission, hasModule } = useAuth();
 
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -115,11 +123,27 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const navItems = [
-    { icon: Zap, label: 'Admin Home', path: '/admin', id: 'admin_home' },
-    { icon: ListTodo, label: 'ToDo', path: '/admin/todo', id: 'todo' },
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard', id: 'dashboard' },
-  ];
+  const navItems = user?.isRoot
+    ? [
+      { icon: ShieldCheck, label: 'Root Dashboard', path: '/admin/root', id: 'root_dashboard', isLocked: false },
+      { icon: Building2, label: 'Organizations', path: '/admin/root/organizations', id: 'root_orgs', isLocked: false },
+      { icon: Users, label: 'Users', path: '/admin/root/users', id: 'root_users', isLocked: false },
+      { icon: CircleUserRound, label: 'Profile', path: '/admin/profile', id: 'profile', isLocked: false },
+    ]
+    : (user?.role === 'admin' || user?.role === 'superadmin')
+      ? [
+        { icon: ShieldCheck, label: 'Org Console', path: '/admin/org-console', id: 'org_console', isLocked: false },
+        { icon: Users, label: 'Org Users', path: '/admin/org-console', id: 'org_users', isLocked: false },
+        { icon: CircleUserRound, label: 'Profile', path: '/admin/profile', id: 'profile', isLocked: false },
+      ]
+    : [
+      { icon: Zap, label: 'Admin Home', path: '/admin', id: 'admin_home', isLocked: false },
+      { icon: ListTodo, label: 'TodoKarta', path: '/admin/todokarta', id: 'todokarta', isLocked: !hasModule('todokarta') },
+      { icon: BookOpenCheck, label: 'EduKarta', path: '/admin/edukarta', id: 'edukarta', isLocked: !hasModule('edukarta') },
+      { icon: Brain, label: 'PrepKarta', path: '/admin/prepkarta', id: 'prepkarta', isLocked: !hasModule('prepkarta') },
+      { icon: CreditCard, label: 'Subscription', path: '/admin/subscription', id: 'subscription', isLocked: !hasPermission('billing.view') },
+      { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard', id: 'dashboard', isLocked: false },
+    ];
 
   return (
     <div className="flex h-screen bg-midnight text-slate-500 overflow-hidden">
@@ -145,7 +169,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               )}
             >
               <item.icon className="w-5 h-5" />
-              {item.label}
+              <span className="flex-1 text-left">{item.label}</span>
+              {item.isLocked ? <Lock className="w-3.5 h-3.5 text-slate-500" /> : null}
             </button>
           ))}
         </nav>
@@ -223,6 +248,16 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               </button>
               {isProfileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-44 glass rounded-xl border border-white/10 shadow-xl overflow-hidden z-20">
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      navigate('/admin/profile');
+                    }}
+                    className="w-full text-left px-3 py-2.5 text-sm text-slate-300 hover:bg-white/5 flex items-center gap-2"
+                  >
+                    <CircleUserRound className="w-4 h-4" />
+                    Profile
+                  </button>
                   <button
                     onClick={() => {
                       setIsProfileMenuOpen(false);

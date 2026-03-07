@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { AdminLayout } from './layouts/AdminLayout';
 import { AdminHome } from './pages/admin/Home';
 import { TodoPage } from './pages/admin/Todo';
@@ -13,9 +14,34 @@ import { Notifications } from './pages/admin/Notifications';
 import { LoginPage } from './pages/auth/LoginPage';
 import { SignupPage } from './pages/auth/SignupPage';
 import { useAuth } from './context/AuthContext';
+import { BillingPage } from './pages/admin/Billing';
+import { EduKartaPage } from './pages/admin/EduKarta';
+import { PrepKartaPage } from './pages/admin/PrepKarta';
+import { ProfilePage } from './pages/admin/Profile';
+import { Card } from './components/ui/Card';
+import { RootDashboardPage } from './pages/admin/RootDashboard';
+import { RootOrganizationsPage } from './pages/admin/RootOrganizations';
+import { RootUsersPage } from './pages/admin/RootUsers';
+import { RootOrganizationViewPage } from './pages/admin/RootOrganizationView';
+import { OrgAdminConsolePage } from './pages/admin/OrgAdminConsole';
+
+function LockedAccess({ message }: { message: string }) {
+  return (
+    <Card className="min-h-[60vh] flex items-center justify-center p-6">
+      <div className="text-center space-y-3 max-w-md">
+        <div className="mx-auto w-12 h-12 rounded-full border border-teal/40 bg-teal/10 flex items-center justify-center">
+          <Lock className="w-5 h-5 text-teal" />
+        </div>
+        <p className="text-lg font-semibold text-heading">Access Restricted</p>
+        <p className="text-sm text-slate-400">{message}</p>
+      </div>
+    </Card>
+  );
+}
 
 const App = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, hasPermission, user } = useAuth();
+  const isOrgAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   return (
     <Routes>
@@ -27,9 +53,31 @@ const App = () => {
         element={isAuthenticated ? (
           <AdminLayout>
             <Routes>
-              <Route path="/" element={<AdminHome />} />
-              <Route path="/todo" element={<TodoPage />} />
+              <Route
+                path="/"
+                element={user?.isRoot
+                  ? <Navigate to="/admin/root" replace />
+                  : isOrgAdmin
+                    ? <Navigate to="/admin/org-console" replace />
+                    : <AdminHome />}
+              />
+              <Route path="/root" element={user?.isRoot ? <RootDashboardPage /> : <LockedAccess message="Root access required." />} />
+              <Route path="/root/organizations" element={user?.isRoot ? <RootOrganizationsPage /> : <LockedAccess message="Root access required." />} />
+              <Route path="/root/organizations/:orgId" element={user?.isRoot ? <RootOrganizationViewPage /> : <LockedAccess message="Root access required." />} />
+              <Route path="/root/users" element={user?.isRoot ? <RootUsersPage /> : <LockedAccess message="Root access required." />} />
+              <Route path="/org-console" element={isOrgAdmin || user?.isRoot ? <OrgAdminConsolePage /> : <LockedAccess message="Organization admin access required." />} />
+              <Route path="/todo" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <TodoPage />} />
+              <Route path="/todokarta" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <TodoPage />} />
               <Route path="/dashboard" element={<AdminDashboard />} />
+              <Route
+                path="/subscription"
+                element={hasPermission('billing.view') ? <BillingPage /> : <LockedAccess message="Your role does not include billing access." />}
+              />
+              <Route path="/billing" element={<Navigate to="/admin/subscription" replace />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/account" element={<Navigate to="/admin/profile" replace />} />
+              <Route path="/edukarta" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <EduKartaPage />} />
+              <Route path="/prepkarta" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <PrepKartaPage />} />
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/contacts" element={<Contacts />} />
