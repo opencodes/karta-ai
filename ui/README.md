@@ -8,6 +8,39 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/9c39023a-1163-46e8-a7b5-b0dc26628bd6
 
+## Folder Tree
+```text
+ui/
+├── src/
+│   ├── components/
+│   │   ├── ui/
+│   │   └── NotificationDropdown.tsx
+│   ├── context/
+│   │   ├── AuthContext.tsx
+│   │   └── ThemeContext.tsx
+│   ├── data/
+│   │   └── mockData.ts
+│   ├── layouts/
+│   │   └── AdminLayout.tsx
+│   ├── lib/
+│   │   └── api.ts
+│   ├── pages/
+│   │   ├── admin/
+│   │   └── auth/
+│   ├── utils/
+│   │   └── cn.ts
+│   ├── App.tsx
+│   ├── index.css
+│   ├── main.tsx
+│   ├── types.ts
+│   └── vite-env.d.ts
+├── .env.example
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
 ## Run Locally
 
 **Prerequisites:**  Node.js

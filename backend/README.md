@@ -1,4 +1,38 @@
 # Karta API (Node + Express + MySQL)
+
+## Folder Tree
+```text
+backend/
+├── src/
+│   ├── config/
+│   │   └── prompts/
+│   ├── middleware/
+│   │   └── auth.ts
+│   ├── routes/
+│   │   ├── auth.ts
+│   │   └── tasks.ts
+│   ├── services/
+│   │   └── huggingFaceClient.ts
+│   ├── utils/
+│   │   ├── taskMapper.ts
+│   │   ├── taskParser.ts
+│   │   └── token.ts
+│   ├── config.ts
+│   ├── db.ts
+│   ├── server.ts
+│   └── types.ts
+├── sql/
+│   ├── migrations/
+│   │   └── 001_add_task_metadata.sql
+│   └── schema.sql
+├── test/
+│   └── taskParser.test.ts
+├── .env.example
+├── api.md
+├── package.json
+└── tsconfig.json
+```
+
 1. On the PC (MySQL server), edit MySQL config:
 - `bind-address = 0.0.0.0` (or server LAN IP)
 - Usually in `my.cnf` / `mysqld.cnf`
