@@ -117,7 +117,7 @@ export function RootOrganizationViewPage() {
         <button
           type="button"
           onClick={() => navigate('/admin/root/organizations')}
-          className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20"
+          className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-secondary-ui"
         >
           Back to Organizations
         </button>
@@ -166,7 +166,7 @@ export function RootOrganizationViewPage() {
               type="button"
               onClick={() => void onAssignOwner()}
               disabled={busy === 'assign-owner'}
-              className="px-3 py-2 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+              className="px-3 py-2 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50"
             >
               {busy === 'assign-owner' ? 'Saving...' : 'Assign'}
             </button>
@@ -210,7 +210,7 @@ export function RootOrganizationViewPage() {
             type="button"
             onClick={() => void onCreateUser()}
             disabled={busy === 'create-user'}
-            className="px-3 py-2 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+            className="px-3 py-2 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50"
           >
             {busy === 'create-user' ? 'Creating...' : 'Add User'}
           </button>

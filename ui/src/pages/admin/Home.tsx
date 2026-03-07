@@ -134,7 +134,7 @@ export const AdminHome = () => {
               type="button"
               onClick={() => void submitTask()}
               disabled={isProcessing}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 whitespace-nowrap shrink-0 disabled:opacity-60"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui whitespace-nowrap shrink-0 disabled:opacity-60"
             >
               {isProcessing ? 'Processing...' : 'Execute'}
             </button>

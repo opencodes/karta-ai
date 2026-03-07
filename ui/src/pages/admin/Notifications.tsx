@@ -232,10 +232,10 @@ export const Notifications = () => {
                     <div className="pt-2 flex items-center gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                       <span>{notification.date}</span>
                       {notification.type === 'ai' && (
-                        <button className="text-teal hover:underline">View Execution Log</button>
+                        <button className="btn-link-ui">View Execution Log</button>
                       )}
                       {notification.category === 'finance' && (
-                        <button className="text-teal hover:underline">View Wallet</button>
+                        <button className="btn-link-ui">View Wallet</button>
                       )}
                     </div>
                   </div>

@@ -69,7 +69,7 @@ export const Contacts = () => {
             type="button" 
             disabled={isProcessing}
             onClick={() => setIsAddModalOpen(false)} 
-            className="flex-1 py-4 rounded-2xl border border-main text-slate-400 font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+            className="flex-1 py-4 rounded-2xl btn-outline-ui transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -176,7 +176,7 @@ export const Contacts = () => {
             >
               <div className="p-6 border-b border-main flex items-center justify-between">
                 <h2 className="text-xl font-bold text-heading">Add New Contact</h2>
-                <button onClick={() => setIsAddModalOpen(false)} className="p-2 text-slate-500 hover:text-heading transition-colors">
+                <button onClick={() => setIsAddModalOpen(false)} className="btn-icon-ui">
                   <X className="w-5 h-5" />
                 </button>
               </div>

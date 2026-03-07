@@ -348,7 +348,7 @@ export function OrgAdminConsolePage() {
             <input value={settings.name} onChange={(e) => setSettings((prev) => ({ ...prev, name: e.target.value }))} placeholder="Organization name" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
             <input value={settings.plan} onChange={(e) => setSettings((prev) => ({ ...prev, plan: e.target.value }))} placeholder="Plan" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
           </div>
-          <button type="button" onClick={() => void onSaveSettings()} disabled={busy === 'save-settings'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50">
+          <button type="button" onClick={() => void onSaveSettings()} disabled={busy === 'save-settings'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50">
             {busy === 'save-settings' ? 'Saving...' : 'Save Settings'}
           </button>
         </Card>
@@ -362,7 +362,7 @@ export function OrgAdminConsolePage() {
               <input value={newRoleSlug} onChange={(e) => setNewRoleSlug(e.target.value)} placeholder="role slug" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
               <input value={newRoleDescription} onChange={(e) => setNewRoleDescription(e.target.value)} placeholder="description" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
             </div>
-            <button type="button" onClick={() => void onCreateRole()} disabled={busy === 'create-role'} className="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50">
+            <button type="button" onClick={() => void onCreateRole()} disabled={busy === 'create-role'} className="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50">
               {busy === 'create-role' ? 'Creating...' : 'Create Custom Role'}
             </button>
 
@@ -394,7 +394,7 @@ export function OrgAdminConsolePage() {
               ))}
             </div>
 
-            <button type="button" onClick={() => void onSaveRolePermissions()} disabled={busy === 'save-role-permissions'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50">
+            <button type="button" onClick={() => void onSaveRolePermissions()} disabled={busy === 'save-role-permissions'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-secondary-ui disabled:opacity-50">
               {busy === 'save-role-permissions' ? 'Saving...' : 'Save Role Permissions'}
             </button>
           </Card>
@@ -460,7 +460,7 @@ export function OrgAdminConsolePage() {
                     type="button"
                     onClick={() => void onToggleMemberModule(module.id, granted)}
                     disabled={busy === `member-module:${module.id}`}
-                    className="px-3 py-1 rounded text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50"
+                    className="px-3 py-1 rounded text-xs font-semibold btn-secondary-ui disabled:opacity-50"
                   >
                     {granted ? 'Revoke' : 'Grant'}
                   </button>
@@ -492,7 +492,7 @@ export function OrgAdminConsolePage() {
                       type="button"
                       onClick={() => void onResolveRequest(request.id, 'approved')}
                       disabled={busy === `request:${request.id}:approved`}
-                      className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+                      className="px-2 py-1 rounded text-xs font-semibold btn-primary-ui disabled:opacity-50"
                     >
                       Approve
                     </button>
@@ -500,7 +500,7 @@ export function OrgAdminConsolePage() {
                       type="button"
                       onClick={() => void onResolveRequest(request.id, 'rejected')}
                       disabled={busy === `request:${request.id}:rejected`}
-                      className="px-2 py-1 rounded text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50"
+                      className="px-2 py-1 rounded text-xs font-semibold btn-secondary-ui disabled:opacity-50"
                     >
                       Reject
                     </button>
@@ -554,7 +554,7 @@ export function OrgAdminConsolePage() {
                   type="button"
                   onClick={() => void onBuyOrgModule(moduleName)}
                   disabled={isSubscribed || isPendingApproval || busy === `buy-org-module:${moduleName}`}
-                  className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+                  className="px-2 py-1 rounded text-xs font-semibold btn-primary-ui disabled:opacity-50"
                 >
                   {isPendingApproval ? 'Pending approval' : isSubscribed ? 'Subscribed' : 'Buy'}
                 </button>
@@ -567,7 +567,7 @@ export function OrgAdminConsolePage() {
       <Card title="API Keys and Integrations" className="scroll-mt-24" id="org-api-keys">
         <div className="flex items-center gap-2 mb-3">
           <input value={newApiKeyName} onChange={(e) => setNewApiKeyName(e.target.value)} placeholder="API key name" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
-          <button type="button" onClick={() => void onCreateApiKey()} disabled={busy === 'create-api-key'} className="px-3 py-2 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50 inline-flex items-center gap-1">
+          <button type="button" onClick={() => void onCreateApiKey()} disabled={busy === 'create-api-key'} className="px-3 py-2 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50 inline-flex items-center gap-1">
             <KeyRound className="w-3.5 h-3.5" />
             {busy === 'create-api-key' ? 'Creating...' : 'Create Key'}
           </button>
@@ -587,7 +587,7 @@ export function OrgAdminConsolePage() {
                 <p className="text-xs text-slate-100">{key.name}</p>
                 <p className="text-[11px] text-slate-400">prefix: {key.key_prefix} • status: {key.is_active === 1 ? 'active' : 'revoked'}</p>
               </div>
-              <button type="button" onClick={() => void onRevokeApiKey(key.id)} disabled={key.is_active !== 1 || busy === `revoke-api-key:${key.id}`} className="px-2 py-1 rounded text-xs bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50">
+              <button type="button" onClick={() => void onRevokeApiKey(key.id)} disabled={key.is_active !== 1 || busy === `revoke-api-key:${key.id}`} className="px-2 py-1 rounded text-xs btn-secondary-ui disabled:opacity-50">
                 Revoke
               </button>
             </div>

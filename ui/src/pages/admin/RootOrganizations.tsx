@@ -81,7 +81,7 @@ export function RootOrganizationsPage() {
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Organization name" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
           <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="slug (optional)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
           <input value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="plan" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
-          <button type="button" onClick={() => void onCreate()} disabled={busy === 'create'} className="px-3 py-2 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50">
+          <button type="button" onClick={() => void onCreate()} disabled={busy === 'create'} className="px-3 py-2 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50">
             {busy === 'create' ? 'Creating...' : 'Create'}
           </button>
         </div>
@@ -100,11 +100,11 @@ export function RootOrganizationsPage() {
                 <button
                   type="button"
                   onClick={() => navigate(`/admin/root/organizations/${org.id}`)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui"
                 >
                   View
                 </button>
-                <button type="button" onClick={() => void onToggle(org)} disabled={busy === org.id} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50">
+                <button type="button" onClick={() => void onToggle(org)} disabled={busy === org.id} className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-secondary-ui disabled:opacity-50">
                   {org.isActive ? 'Suspend' : 'Activate'}
                 </button>
               </div>

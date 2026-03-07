@@ -161,7 +161,7 @@ export function RootBillingPage() {
                       type="button"
                       onClick={() => void onResolveRequest(item.subscriptionId, 'approved')}
                       disabled={busy === `request:${item.subscriptionId}:approved`}
-                      className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+                      className="px-2 py-1 rounded text-xs font-semibold btn-primary-ui disabled:opacity-50"
                     >
                       Approve
                     </button>
@@ -169,7 +169,7 @@ export function RootBillingPage() {
                       type="button"
                       onClick={() => void onResolveRequest(item.subscriptionId, 'rejected')}
                       disabled={busy === `request:${item.subscriptionId}:rejected`}
-                      className="px-2 py-1 rounded text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50"
+                      className="px-2 py-1 rounded text-xs font-semibold btn-secondary-ui disabled:opacity-50"
                     >
                       Reject
                     </button>
@@ -200,7 +200,7 @@ export function RootBillingPage() {
               Active
             </label>
           </div>
-          <button type="button" onClick={() => void onCreateModule()} disabled={busy === 'create-module'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50 inline-flex items-center gap-1">
+          <button type="button" onClick={() => void onCreateModule()} disabled={busy === 'create-module'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50 inline-flex items-center gap-1">
             <PackagePlus className="w-3.5 h-3.5" />
             {busy === 'create-module' ? 'Creating...' : 'Create Module'}
           </button>

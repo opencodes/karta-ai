@@ -36,7 +36,7 @@ export const NotificationDropdown = ({
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute top-16 right-0 w-80 sm:w-96 glass rounded-2xl shadow-2xl z-[101] overflow-hidden border border-main"
+            className="absolute top-16 right-0 w-80 sm:w-96 dropdown-panel-ui rounded-2xl shadow-2xl z-[101]"
           >
             <div className="p-4 border-b border-main flex items-center justify-between bg-black/5 dark:bg-white/5">
               <div className="flex items-center gap-2">

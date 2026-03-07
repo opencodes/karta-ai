@@ -235,7 +235,7 @@ export const TodoPage = () => {
             type="button"
             onClick={() => navigate('/admin/subscription')}
             disabled={isRequestPending}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 w-fit disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui w-fit disabled:opacity-50"
           >
             Subscribe to Access
           </button>
@@ -254,7 +254,7 @@ export const TodoPage = () => {
                 }
               }}
               disabled={isRequestPending}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 w-fit disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-secondary-ui w-fit disabled:opacity-50"
             >
               {isRequestPending ? 'Request Pending' : 'Request Access'}
             </button>

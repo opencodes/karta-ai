@@ -156,7 +156,7 @@ export function BillingPage() {
                   type="button"
                   onClick={() => void onBuyModule(item.module_name)}
                   disabled={owned || busyKey === `buy-module:${item.module_name}` || !hasPermission('billing.update')}
-                  className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+                  className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50"
                 >
                   {owned ? 'Already Active' : busyKey === `buy-module:${item.module_name}` ? 'Processing...' : 'Buy Module'}
                 </button>

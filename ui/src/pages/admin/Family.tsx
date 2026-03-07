@@ -140,7 +140,7 @@ export const Family = () => {
           </div>
 
           <div className="mt-8 pt-8 border-t border-main">
-            <button className="w-full py-3 rounded-xl border border-main text-slate-400 font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+            <button className="w-full py-3 rounded-xl border border-main text-slate-400 font-medium btn-ghost-ui transition-colors">
               Edit Family Details
             </button>
           </div>
@@ -156,7 +156,7 @@ export const Family = () => {
             {members.map((member) => (
               <Card key={member.id} className="relative group">
                 <div className="absolute top-4 right-4">
-                  <button className="p-2 text-slate-500 hover:text-heading transition-colors">
+                  <button className="btn-icon-ui">
                     <MoreVertical className="w-4 h-4" />
                   </button>
                 </div>
@@ -210,7 +210,7 @@ export const Family = () => {
                     )} />
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{member.status}</span>
                   </span>
-                  <button className="text-xs font-bold text-teal hover:underline uppercase tracking-widest">
+                  <button className="text-xs font-bold btn-link-ui uppercase tracking-widest">
                     View Profile
                   </button>
                 </div>
@@ -252,7 +252,7 @@ export const Family = () => {
                 <h2 className="text-xl font-bold text-heading">Invite Family Member</h2>
                 <button 
                   onClick={() => setIsInviteModalOpen(false)}
-                  className="p-2 text-slate-500 hover:text-heading transition-colors"
+                  className="btn-icon-ui"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -302,7 +302,7 @@ export const Family = () => {
                     type="button"
                     disabled={isProcessing}
                     onClick={() => setIsInviteModalOpen(false)}
-                    className="flex-1 py-4 rounded-2xl border border-main text-slate-400 font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
+                    className="flex-1 py-4 rounded-2xl btn-outline-ui transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>

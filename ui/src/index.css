@@ -35,10 +35,10 @@
 }
 
 :root.light {
-  --bg-midnight: #f8fafc;
+  --bg-midnight: #f2f6fb;
   --bg-paper: #ffffff;
-  --text-main: #475569;
-  --text-heading: #0f172a;
+  --text-main: #334155;
+  --text-heading: #0b1220;
 }
 
 @layer utilities {
@@ -65,6 +65,12 @@
   }
 }
 
+:root.light body {
+  background-image:
+    radial-gradient(circle at 5% 0%, rgba(56, 189, 248, 0.12), transparent 32%),
+    radial-gradient(circle at 95% 100%, rgba(16, 185, 129, 0.1), transparent 28%);
+}
+
 .text-heading {
   color: var(--text-heading);
 }
@@ -78,7 +84,28 @@
 }
 
 :root.light .glass {
-  @apply bg-white border-black/10 shadow-sm;
+  @apply bg-white/80 border-slate-200/90 shadow-[0_8px_30px_rgba(15,23,42,0.06)];
+}
+
+/* Improve visibility of nested "dark-style" card surfaces in light mode */
+:root.light .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+}
+
+:root.light .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+:root.light .border-white\/5 {
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+:root.light .border-white\/10 {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+:root.light .border-white\/20 {
+  border-color: rgba(100, 116, 139, 0.45) !important;
 }
 
 .border-main {
@@ -86,7 +113,7 @@
 }
 
 :root.light .border-main {
-  @apply border-black/10;
+  @apply border-slate-200;
 }
 
 .glass-teal {
@@ -94,7 +121,7 @@
 }
 
 :root.light .glass-teal {
-  @apply bg-teal/10 border-teal/30 shadow-sm;
+  @apply bg-teal/10 border-teal/30 shadow-[0_8px_24px_rgba(20,184,166,0.12)];
 }
 
 .text-gradient {
@@ -105,3 +132,193 @@
   @apply font-serif italic;
 }
 
+/* Global button style system for legacy/raw page buttons */
+.btn-primary-ui {
+  @apply bg-teal text-black hover:bg-teal/90;
+}
+
+.btn-secondary-ui {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+}
+
+.btn-secondary-ui:hover {
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.btn-outline-ui {
+  @apply border border-white/10 text-slate-500 hover:bg-black/5 dark:hover:bg-white/5;
+}
+
+.btn-ghost-ui {
+  @apply text-slate-500 hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5;
+}
+
+.btn-link-ui {
+  @apply text-teal hover:underline;
+}
+
+.btn-icon-ui {
+  @apply p-2 text-slate-500 hover:text-slate-200 transition-colors;
+}
+
+.btn-danger-ui {
+  @apply text-slate-500 hover:text-red-400 transition-colors duration-200;
+}
+
+/* Global form controls */
+.form-control-ui {
+  @apply bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 outline-none transition-colors duration-200;
+}
+
+.form-control-ui:focus {
+  border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.form-control-ui-sm {
+  @apply bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200 outline-none transition-colors duration-200;
+}
+
+.form-control-ui-sm:focus {
+  border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+/* Dropdown / select controls */
+.form-select-ui {
+  @apply bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-9 text-sm text-slate-200 placeholder:text-slate-500 outline-none transition-colors duration-200 cursor-pointer;
+}
+
+.form-select-ui-sm {
+  @apply bg-white/5 border border-white/10 rounded px-2 py-1 pr-7 text-xs text-slate-200 outline-none transition-colors duration-200 cursor-pointer;
+}
+
+.form-select-ui:disabled,
+.form-select-ui-sm:disabled {
+  cursor: not-allowed;
+}
+
+.dropdown-panel-ui {
+  @apply bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl overflow-hidden;
+}
+
+.dropdown-item-ui {
+  @apply w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center gap-2;
+}
+
+:root.dark select option,
+html:not(.light) select option {
+  background-color: #0b1220;
+  color: #e2e8f0;
+}
+
+:root.light .btn-primary-ui {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-primary) 34%, transparent);
+}
+
+:root.light .btn-secondary-ui {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+}
+
+:root.light .btn-outline-ui {
+  @apply border border-slate-300 text-slate-700 hover:bg-slate-100;
+}
+
+:root.light .btn-ghost-ui {
+  @apply text-slate-600 hover:text-slate-900 hover:bg-slate-100;
+}
+
+:root.light .btn-danger-ui {
+  @apply text-slate-600 hover:text-red-600;
+}
+
+:root.light .form-control-ui {
+  @apply bg-white border-slate-300 text-slate-900 placeholder:text-slate-400;
+}
+
+:root.light .form-control-ui-sm {
+  @apply bg-white border-slate-300 text-slate-900;
+}
+
+:root.light .form-select-ui {
+  @apply bg-white border-slate-300 text-slate-900;
+}
+
+:root.light .form-select-ui-sm {
+  @apply bg-white border-slate-300 text-slate-900;
+}
+
+:root.light .dropdown-panel-ui {
+  @apply bg-white border-slate-200 shadow-[0_14px_36px_rgba(15,23,42,0.12)];
+}
+
+:root.light .dropdown-item-ui {
+  @apply text-slate-700 hover:bg-slate-100;
+}
+
+:root.light select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Fallback normalization for remaining legacy button utility combos */
+button[class*="bg-teal"][class*="text-black"],
+button[class*="bg-teal"][class*="text-midnight"] {
+  @apply bg-teal text-black hover:bg-teal/90;
+}
+
+button[class*="bg-white/10"][class*="text-slate-200"],
+button[class*="bg-black/5"][class*="dark:bg-white/5"][class*="text-heading"] {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+}
+
+button[class*="text-teal"][class*="hover:underline"] {
+  @apply text-teal hover:underline;
+}
+
+button[class*="p-2"][class*="text-slate-500"][class*="hover:text-heading"] {
+  @apply p-2 text-slate-500 hover:text-slate-200 transition-colors;
+}
+
+:root.light button[class*="bg-teal"][class*="text-black"],
+:root.light button[class*="bg-teal"][class*="text-midnight"] {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+:root.light button[class*="bg-white/10"][class*="text-slate-200"],
+:root.light button[class*="bg-black/5"][class*="dark:bg-white/5"][class*="text-heading"] {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
+}
+
+:root.light button[class*="p-2"][class*="text-slate-500"][class*="hover:text-heading"] {
+  @apply p-2 text-slate-600 hover:text-slate-900 transition-colors;
+}
+
+/* Fallback normalization for existing raw form classes across pages */
+input[class*="bg-white/5"][class*="border-white/10"],
+select[class*="bg-white/5"][class*="border-white/10"],
+textarea[class*="bg-white/5"][class*="border-white/10"] {
+  @apply bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 outline-none transition-colors duration-200;
+}
+
+input[class*="bg-white/5"][class*="border-white/10"][class*="rounded"][class*="px-2"][class*="py-1"],
+select[class*="bg-white/5"][class*="border-white/10"][class*="rounded"][class*="px-2"][class*="py-1"] {
+  @apply bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200 outline-none transition-colors duration-200;
+}
+
+:root.light input[class*="bg-white/5"][class*="border-white/10"],
+:root.light select[class*="bg-white/5"][class*="border-white/10"],
+:root.light textarea[class*="bg-white/5"][class*="border-white/10"] {
+  @apply bg-white border-slate-300 text-slate-900 placeholder:text-slate-400;
+}

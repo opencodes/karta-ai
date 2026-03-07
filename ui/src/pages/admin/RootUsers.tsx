@@ -86,7 +86,7 @@ export function RootUsersPage() {
                   value={item.role}
                   disabled={item.isRoot || busy === `role:${item.id}`}
                   onChange={(e) => void onRoleChange(item.id, e.target.value as 'admin' | 'superadmin' | 'member')}
-                  className="bg-white/5 border border-white/10 text-slate-200 rounded-lg px-2 py-1 text-sm disabled:opacity-50"
+                  className="form-select-ui-sm disabled:opacity-70"
                 >
                   <option value="member">member</option>
                   <option value="admin">admin</option>
@@ -96,7 +96,7 @@ export function RootUsersPage() {
                   value={item.status}
                   disabled={item.isRoot || busy === `status:${item.id}`}
                   onChange={(e) => void onStatusChange(item.id, e.target.value as 'active' | 'invited' | 'disabled')}
-                  className="bg-white/5 border border-white/10 text-slate-200 rounded-lg px-2 py-1 text-sm disabled:opacity-50"
+                  className="form-select-ui-sm disabled:opacity-70"
                 >
                   <option value="active">active</option>
                   <option value="invited">invited</option>

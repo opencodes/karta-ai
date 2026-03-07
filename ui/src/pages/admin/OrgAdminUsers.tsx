@@ -127,7 +127,7 @@ export function OrgAdminUsersPage() {
             <option value="disabled">disabled</option>
           </select>
         </div>
-        <button type="button" onClick={() => void onCreateUser()} disabled={busy === 'create-user'} className="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50">
+        <button type="button" onClick={() => void onCreateUser()} disabled={busy === 'create-user'} className="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50">
           {busy === 'create-user' ? 'Creating...' : 'Add User'}
         </button>
       </Card>
