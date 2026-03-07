@@ -64,10 +64,6 @@ const orgBuyModuleSchema = z.object({
   moduleName: z.string().trim().min(1),
 });
 
-const orgBuyPackageSchema = z.object({
-  planName: z.string().trim().min(1),
-});
-
 export const orgAdminRouter = Router();
 
 function isOrgAdmin(user: AuthedRequest['user']) {
@@ -829,8 +825,8 @@ orgAdminRouter.get('/modules', async (req, res) => {
 
 orgAdminRouter.patch('/modules/:moduleId', async (req, res) => {
   const authed = (req as unknown as AuthedRequest).user;
-  if (!isOrgAdmin(authed)) {
-    return res.status(403).json({ error: 'Organization admin access required' });
+  if (!authed.isRoot && authed.role !== 'root') {
+    return res.status(403).json({ error: 'Root access required' });
   }
 
   const orgId = getOrgId(authed);
@@ -975,28 +971,6 @@ orgAdminRouter.get('/billing/catalog/modules', async (req, res) => {
   return res.json({ modules: rows });
 });
 
-orgAdminRouter.get('/billing/catalog/packages', async (req, res) => {
-  const authed = (req as unknown as AuthedRequest).user;
-  if (!isOrgAdmin(authed)) {
-    return res.status(403).json({ error: 'Organization admin access required' });
-  }
-
-  const [rows] = await pool.query(
-    `SELECT sp.id AS plan_id, sp.name AS plan_name, sp.display_name, sp.description,
-            sp.price_monthly, sp.price_yearly, sp.currency,
-            GROUP_CONCAT(DISTINCT m.name ORDER BY m.name SEPARATOR ',') AS modules
-     FROM subscription_plans sp
-     INNER JOIN plan_modules pm ON pm.plan_id = sp.id AND pm.is_enabled = 1
-     INNER JOIN modules m ON m.id = pm.module_id AND m.is_active = 1
-     WHERE sp.is_active = 1
-     GROUP BY sp.id, sp.name, sp.display_name, sp.description, sp.price_monthly, sp.price_yearly, sp.currency
-     HAVING COUNT(pm.module_id) > 1
-     ORDER BY sp.display_name ASC`,
-  );
-
-  return res.json({ packages: rows });
-});
-
 orgAdminRouter.get('/billing/subscriptions', async (req, res) => {
   const authed = (req as unknown as AuthedRequest).user;
   if (!isOrgAdmin(authed)) {
@@ -1059,50 +1033,6 @@ orgAdminRouter.post('/billing/buy-module', async (req, res) => {
   return res.status(201).json({ message: 'Module purchased for organization', subscriptions });
 });
 
-orgAdminRouter.post('/billing/buy-package', async (req, res) => {
-  const authed = (req as unknown as AuthedRequest).user;
-  if (!isOrgAdmin(authed)) {
-    return res.status(403).json({ error: 'Organization admin access required' });
-  }
-
-  const orgId = getOrgId(authed);
-  if (!orgId) {
-    return res.status(400).json({ error: 'Organization not assigned' });
-  }
-
-  const parsed = orgBuyPackageSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
-  }
-
-  const [planRows] = await pool.query(
-    `SELECT sp.id AS plan_id
-     FROM subscription_plans sp
-     INNER JOIN plan_modules pm ON pm.plan_id = sp.id AND pm.is_enabled = 1
-     WHERE sp.name = ?
-       AND sp.is_active = 1
-     GROUP BY sp.id
-     HAVING COUNT(pm.module_id) > 1
-     LIMIT 1`,
-    [parsed.data.planName],
-  );
-
-  const planId = (planRows as Array<{ plan_id: string }>)[0]?.plan_id;
-  if (!planId) {
-    return res.status(404).json({ error: 'Bundle plan not found' });
-  }
-
-  await pool.query(
-    `INSERT INTO organization_subscriptions (id, organization_id, plan_id, status, start_date, end_date, auto_renew)
-     VALUES (UUID(), ?, ?, 'active', UTC_TIMESTAMP(), NULL, 1)
-     ON DUPLICATE KEY UPDATE status = 'active', start_date = UTC_TIMESTAMP(), end_date = NULL, updated_at = CURRENT_TIMESTAMP`,
-    [orgId, planId],
-  );
-  await enableOrganizationModulesForPlan(orgId, planId);
-
-  const subscriptions = await getOrganizationSubscriptionDetails(orgId);
-  return res.status(201).json({ message: 'Package purchased for organization', subscriptions });
-});
 
 orgAdminRouter.get('/billing', async (req, res) => {
   const authed = (req as unknown as AuthedRequest).user;

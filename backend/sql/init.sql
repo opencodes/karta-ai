@@ -107,12 +107,7 @@ INSERT INTO modules (id, name, slug, display_name, description, route_prefix, ve
 VALUES
   (UUID(), 'todokarta', 'todokarta', 'TodoKarta', 'Core personal task management module', '/api/todokarta', '1.0.0', 1, 1),
   (UUID(), 'edukarta', 'edukarta', 'EduKarta', 'Education module', '/api/edukarta', '1.0.0', 0, 1),
-  (UUID(), 'prepkarta', 'prepkarta', 'PrepKarta', 'Exam prep module', '/api/prepkarta', '1.0.0', 0, 1),
-  (UUID(), 'crm', 'crm', 'CRM', 'Customer relationship management module', '/api/crm', '1.0.0', 0, 1),
-  (UUID(), 'helpdesk', 'helpdesk', 'Helpdesk', 'Support and ticketing module', '/api/helpdesk', '1.0.0', 0, 1),
-  (UUID(), 'analytics', 'analytics', 'Analytics', 'Business analytics module', '/api/analytics', '1.0.0', 0, 1),
-  (UUID(), 'billing-core', 'billing', 'Billing', 'Billing and subscription module', '/api/billing', '1.0.0', 1, 1),
-  (UUID(), 'hr', 'hr', 'HR', 'Human resources module', '/api/hr', '1.0.0', 0, 1)
+  (UUID(), 'prepkarta', 'prepkarta', 'PrepKarta', 'Exam prep module', '/api/prepkarta', '1.0.0', 0, 1)
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   display_name = VALUES(display_name),
@@ -124,23 +119,14 @@ ON DUPLICATE KEY UPDATE
   updated_at = CURRENT_TIMESTAMP;
 
 -- permission -> module binding
-INSERT INTO module_permissions (id, module_id, permission_id)
-SELECT UUID(), m.id, p.id
-FROM modules m
-INNER JOIN permissions p ON (
-  (m.slug = 'crm' AND p.slug IN ('users.create', 'users.update', 'users.delete', 'users.view', 'roles.create', 'roles.update')) OR
-  (m.slug = 'helpdesk' AND p.slug IN ('tickets.create', 'tickets.assign')) OR
-  (m.slug = 'billing' AND p.slug IN ('billing.view', 'billing.update'))
-)
-ON DUPLICATE KEY UPDATE module_id = VALUES(module_id);
+-- (no module permission bindings for the default three modules)
 
 -- seed plans
 INSERT INTO subscription_plans (id, name, display_name, description, price_monthly, price_yearly, currency, is_active)
 VALUES
   (UUID(), 'todokarta-free', 'TodoKarta Free', 'Free access to TodoKarta', 0.00, 0.00, 'USD', 1),
   (UUID(), 'edukarta-module', 'EduKarta Module', 'Access to EduKarta only', 9.99, 99.00, 'USD', 1),
-  (UUID(), 'prepkarta-module', 'PrepKarta Module', 'Access to PrepKarta only', 14.99, 149.00, 'USD', 1),
-  (UUID(), 'edu-prep-bundle', 'Edu + Prep Bundle', 'Discounted access to EduKarta and PrepKarta', 19.99, 199.00, 'USD', 1)
+  (UUID(), 'prepkarta-module', 'PrepKarta Module', 'Access to PrepKarta only', 14.99, 149.00, 'USD', 1)
 ON DUPLICATE KEY UPDATE
   display_name = VALUES(display_name),
   description = VALUES(description),
@@ -156,8 +142,7 @@ FROM subscription_plans sp
 INNER JOIN modules m ON (
   (sp.name = 'todokarta-free' AND m.slug = 'todokarta') OR
   (sp.name = 'edukarta-module' AND m.slug = 'edukarta') OR
-  (sp.name = 'prepkarta-module' AND m.slug = 'prepkarta') OR
-  (sp.name = 'edu-prep-bundle' AND m.slug IN ('edukarta', 'prepkarta'))
+  (sp.name = 'prepkarta-module' AND m.slug = 'prepkarta')
 )
 ON DUPLICATE KEY UPDATE
   is_enabled = VALUES(is_enabled),

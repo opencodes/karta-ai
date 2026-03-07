@@ -123,25 +123,8 @@ export type UserSubscription = {
   plan: BillingPlan;
 };
 
-export type UpgradeOption = {
-  planId: string;
-  planName: string;
-  displayName: string | null;
-  description: string | null;
-  priceMonthly: string | number | null;
-  priceYearly: string | number | null;
-  currency: string;
-  type: 'module' | 'package';
-  modules: string[];
-  newlyUnlockedModules: string[];
-};
-
 export async function listPaidModules(token: string): Promise<{ modules: Array<Record<string, unknown>> }> {
   return request('/api/billing/catalog/modules', { token });
-}
-
-export async function listPackages(token: string): Promise<{ packages: Array<Record<string, unknown>> }> {
-  return request('/api/billing/catalog/packages', { token });
 }
 
 export async function getMyAccess(token: string): Promise<{ modules: string[] }> {
@@ -152,35 +135,11 @@ export async function getMySubscriptions(token: string): Promise<{ subscriptions
   return request('/api/billing/my-subscriptions', { token });
 }
 
-export async function getUpgradeOptions(token: string): Promise<{ upgrades: UpgradeOption[] }> {
-  return request('/api/billing/upgrade-options', { token });
-}
-
 export async function buyModule(token: string, moduleName: string): Promise<{ message: string; modules: string[] }> {
   return request('/api/billing/buy-module', {
     method: 'POST',
     token,
     body: { moduleName },
-  });
-}
-
-export async function buyPackage(token: string, planName: string): Promise<{ message: string; modules: string[] }> {
-  return request('/api/billing/buy-package', {
-    method: 'POST',
-    token,
-    body: { planName },
-  });
-}
-
-export async function upgradePlan(
-  token: string,
-  toPlanName: string,
-  deactivateCurrent = true,
-): Promise<{ message: string; modules: string[]; subscriptions: UserSubscription[] }> {
-  return request('/api/billing/upgrade', {
-    method: 'POST',
-    token,
-    body: { toPlanName, deactivateCurrent },
   });
 }
 
@@ -565,10 +524,6 @@ export async function getOrgBillingCatalogModules(token: string): Promise<{ modu
   return request('/api/org-admin/billing/catalog/modules', { token });
 }
 
-export async function getOrgBillingCatalogPackages(token: string): Promise<{ packages: Array<Record<string, unknown>> }> {
-  return request('/api/org-admin/billing/catalog/packages', { token });
-}
-
 export async function getOrgBillingSubscriptions(token: string): Promise<{ subscriptions: Array<Record<string, unknown>> }> {
   return request('/api/org-admin/billing/subscriptions', { token });
 }
@@ -581,12 +536,42 @@ export async function buyOrgModule(token: string, moduleName: string): Promise<{
   });
 }
 
-export async function buyOrgPackage(token: string, planName: string): Promise<{ message: string; subscriptions: Array<Record<string, unknown>> }> {
-  return request('/api/org-admin/billing/buy-package', {
+export type CreateModulePayload = {
+  name: string;
+  slug: string;
+  displayName?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  routePrefix?: string | null;
+  version?: string | null;
+  isCore?: boolean;
+  isActive?: boolean;
+};
+
+export async function createBillingModule(token: string, payload: CreateModulePayload): Promise<{ message: string }> {
+  return request('/api/billing/admin/modules', {
     method: 'POST',
     token,
-    body: { planName },
+    body: payload,
   });
+}
+
+export type BillingModuleItem = {
+  id: string;
+  name: string;
+  slug: string;
+  display_name?: string | null;
+  description?: string | null;
+  icon?: string | null;
+  route_prefix?: string | null;
+  version?: string | null;
+  is_core: 0 | 1;
+  is_active: 0 | 1;
+  created_at?: string;
+};
+
+export async function listBillingModules(token: string): Promise<{ modules: BillingModuleItem[] }> {
+  return request('/api/billing/admin/modules', { token });
 }
 
 export async function listOrgAdminApiKeys(token: string): Promise<{ apiKeys: OrgApiKey[] }> {

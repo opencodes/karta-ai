@@ -128,12 +128,13 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       { icon: ShieldCheck, label: 'Root Dashboard', path: '/admin/root', id: 'root_dashboard', isLocked: false },
       { icon: Building2, label: 'Organizations', path: '/admin/root/organizations', id: 'root_orgs', isLocked: false },
       { icon: Users, label: 'Users', path: '/admin/root/users', id: 'root_users', isLocked: false },
+      { icon: CreditCard, label: 'Root Modules', path: '/admin/root/modules', id: 'root_modules', isLocked: false },
       { icon: CircleUserRound, label: 'Profile', path: '/admin/profile', id: 'profile', isLocked: false },
     ]
     : (user?.role === 'admin' || user?.role === 'superadmin')
       ? [
         { icon: ShieldCheck, label: 'Org Console', path: '/admin/org-console', id: 'org_console', isLocked: false },
-        { icon: Users, label: 'Org Users', path: '/admin/org-console', id: 'org_users', isLocked: false },
+        { icon: Users, label: 'Org Users', path: '/admin/org-users', id: 'org_users', isLocked: false },
         { icon: CircleUserRound, label: 'Profile', path: '/admin/profile', id: 'profile', isLocked: false },
       ]
     : [

@@ -1,14 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Building2, KeyRound, Shield, Users } from 'lucide-react';
+import { Building2, KeyRound, Shield } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import {
   createOrgAdminApiKey,
   createOrgAdminRole,
-  createOrgAdminUser,
   buyOrgModule,
-  buyOrgPackage,
   getOrgBillingCatalogModules,
-  getOrgBillingCatalogPackages,
   getOrgBillingSubscriptions,
   getOrgAdminOverview,
   getOrgAdminReports,
@@ -27,8 +24,6 @@ import {
   updateOrgAdminModule,
   updateOrgAdminRolePermissions,
   updateOrgAdminSettings,
-  updateOrgAdminUserRole,
-  updateOrgAdminUserStatus,
   type OrgAdminRole,
   type OrgAdminUser,
   type OrgApiKey,
@@ -56,13 +51,7 @@ export function OrgAdminConsolePage() {
   const [reports, setReports] = useState<Record<string, unknown> | null>(null);
   const [orgBillingSubscriptions, setOrgBillingSubscriptions] = useState<Array<Record<string, unknown>>>([]);
   const [orgCatalogModules, setOrgCatalogModules] = useState<Array<Record<string, unknown>>>([]);
-  const [orgCatalogPackages, setOrgCatalogPackages] = useState<Array<Record<string, unknown>>>([]);
   const [settings, setSettings] = useState<{ name: string; plan: string }>({ name: '', plan: '' });
-
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'admin' | 'superadmin' | 'member'>('member');
-  const [newUserStatus, setNewUserStatus] = useState<'active' | 'invited' | 'disabled'>('active');
 
   const [newRoleName, setNewRoleName] = useState('');
   const [newRoleSlug, setNewRoleSlug] = useState('');
@@ -73,6 +62,8 @@ export function OrgAdminConsolePage() {
 
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const canManageRoles = user?.isRoot || user?.role === 'superadmin';
+  const canUpdateOrgModules = user?.isRoot;
 
   const loadAll = useCallback(async () => {
     if (!token) return;
@@ -89,7 +80,6 @@ export function OrgAdminConsolePage() {
         requestData,
         orgSubscriptionsData,
         orgCatalogModulesData,
-        orgCatalogPackagesData,
       ] = await Promise.all([
         getOrgAdminOverview(token),
         listOrgAdminUsers(token),
@@ -102,7 +92,6 @@ export function OrgAdminConsolePage() {
         listOrgModuleAccessRequests(token),
         getOrgBillingSubscriptions(token),
         getOrgBillingCatalogModules(token),
-        getOrgBillingCatalogPackages(token),
       ]);
 
       setOverview(overviewData.organization ?? null);
@@ -115,7 +104,6 @@ export function OrgAdminConsolePage() {
       setRequests(requestData.requests);
       setOrgBillingSubscriptions(orgSubscriptionsData.subscriptions);
       setOrgCatalogModules(orgCatalogModulesData.modules);
-      setOrgCatalogPackages(orgCatalogPackagesData.packages);
 
       const org = settingsData.organization as Record<string, unknown> | null;
       setSettings({
@@ -162,7 +150,7 @@ export function OrgAdminConsolePage() {
 
   useEffect(() => {
     async function loadRolePermissions() {
-      if (!token || !selectedRoleId) return;
+      if (!token || !selectedRoleId || !canManageRoles) return;
       try {
         const data = await getOrgAdminRolePermissions(token, selectedRoleId);
         setSelectedPermissionIds(data.permissions.map((item) => item.id));
@@ -172,31 +160,9 @@ export function OrgAdminConsolePage() {
     }
 
     void loadRolePermissions();
-  }, [token, selectedRoleId]);
+  }, [token, selectedRoleId, canManageRoles]);
 
   const allowed = user?.isRoot || user?.role === 'admin' || user?.role === 'superadmin';
-
-  async function onCreateUser() {
-    if (!token) return;
-    setBusy('create-user');
-    try {
-      await createOrgAdminUser(token, {
-        email: newUserEmail.trim(),
-        password: newUserPassword,
-        role: newUserRole,
-        status: newUserStatus,
-      });
-      setNewUserEmail('');
-      setNewUserPassword('');
-      setNewUserRole('member');
-      setNewUserStatus('active');
-      await loadAll();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
-    } finally {
-      setBusy('');
-    }
-  }
 
   async function onSaveSettings() {
     if (!token) return;
@@ -285,32 +251,6 @@ export function OrgAdminConsolePage() {
     }
   }
 
-  async function onUserRoleChange(userId: string, role: 'admin' | 'superadmin' | 'member') {
-    if (!token) return;
-    setBusy(`user-role:${userId}`);
-    try {
-      await updateOrgAdminUserRole(token, userId, role);
-      await loadAll();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user role');
-    } finally {
-      setBusy('');
-    }
-  }
-
-  async function onUserStatusChange(userId: string, status: 'active' | 'invited' | 'disabled') {
-    if (!token) return;
-    setBusy(`user-status:${userId}`);
-    try {
-      await updateOrgAdminUserStatus(token, userId, status);
-      await loadAll();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user status');
-    } finally {
-      setBusy('');
-    }
-  }
-
   async function onToggleMemberModule(moduleId: string, currentGranted: boolean) {
     if (!token || !selectedMemberId) return;
     setBusy(`member-module:${moduleId}`);
@@ -355,23 +295,26 @@ export function OrgAdminConsolePage() {
     }
   }
 
-  async function onBuyOrgPackage(planName: string) {
-    if (!token) return;
-    setBusy(`buy-org-package:${planName}`);
-    try {
-      await buyOrgPackage(token, planName);
-      await loadAll();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to buy package for organization');
-    } finally {
-      setBusy('');
-    }
-  }
-
   const selectedRole = useMemo(
     () => roles.find((role) => role.id === selectedRoleId) ?? null,
     [roles, selectedRoleId],
   );
+
+  const subscribedModuleNames = useMemo(() => {
+    const names = new Set<string>();
+    orgBillingSubscriptions.forEach((item) => {
+      const plan = item.plan as Record<string, unknown> | undefined;
+      const modules = (plan?.modules ?? []) as unknown;
+      if (Array.isArray(modules)) {
+        modules.forEach((name) => {
+          if (typeof name === 'string' && name.trim()) {
+            names.add(name.trim().toLowerCase());
+          }
+        });
+      }
+    });
+    return names;
+  }, [orgBillingSubscriptions]);
 
   if (!allowed) {
     return (
@@ -383,7 +326,7 @@ export function OrgAdminConsolePage() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6">
+      <Card className="p-6 scroll-mt-24" id="org-console">
         <div className="flex items-center gap-2 mb-2">
           <Building2 className="w-4 h-4 text-teal" />
           <p className="text-xs font-bold text-teal uppercase tracking-widest">Organization Admin Console</p>
@@ -394,7 +337,7 @@ export function OrgAdminConsolePage() {
       </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card title="Organization Settings">
+        <Card title="Organization Settings" className="scroll-mt-24" id="org-settings">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input value={settings.name} onChange={(e) => setSettings((prev) => ({ ...prev, name: e.target.value }))} placeholder="Organization name" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
             <input value={settings.plan} onChange={(e) => setSettings((prev) => ({ ...prev, plan: e.target.value }))} placeholder="Plan" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
@@ -403,96 +346,58 @@ export function OrgAdminConsolePage() {
             {busy === 'save-settings' ? 'Saving...' : 'Save Settings'}
           </button>
         </Card>
-
-        <Card title="Users (Invite / Update / Deactivate)">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-            <input value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="email" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
-            <input value={newUserPassword} onChange={(e) => setNewUserPassword(e.target.value)} placeholder="temporary password" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
-            <select value={newUserRole} onChange={(e) => setNewUserRole(e.target.value as 'admin' | 'superadmin' | 'member')} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200">
-              <option value="member">member</option>
-              <option value="admin">admin</option>
-              <option value="superadmin">superadmin</option>
-            </select>
-            <select value={newUserStatus} onChange={(e) => setNewUserStatus(e.target.value as 'active' | 'invited' | 'disabled')} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200">
-              <option value="active">active</option>
-              <option value="invited">invited</option>
-              <option value="disabled">disabled</option>
-            </select>
-          </div>
-          <button type="button" onClick={() => void onCreateUser()} disabled={busy === 'create-user'} className="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50">
-            {busy === 'create-user' ? 'Creating...' : 'Add User'}
-          </button>
-
-          <div className="space-y-2 max-h-72 overflow-y-auto">
-            {orgUsers.map((orgUser) => (
-              <div key={orgUser.id} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
-                <div>
-                  <p className="text-xs text-slate-100">{orgUser.email}</p>
-                  <p className="text-[11px] text-slate-400">created: {new Date(orgUser.created_at).toLocaleString()}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <select value={orgUser.role} disabled={orgUser.is_root === 1 || busy === `user-role:${orgUser.id}`} onChange={(e) => void onUserRoleChange(orgUser.id, e.target.value as 'admin' | 'superadmin' | 'member')} className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200">
-                    <option value="member">member</option>
-                    <option value="admin">admin</option>
-                    <option value="superadmin">superadmin</option>
-                  </select>
-                  <select value={orgUser.status} disabled={orgUser.is_root === 1 || busy === `user-status:${orgUser.id}`} onChange={(e) => void onUserStatusChange(orgUser.id, e.target.value as 'active' | 'invited' | 'disabled')} className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200">
-                    <option value="active">active</option>
-                    <option value="invited">invited</option>
-                    <option value="disabled">disabled</option>
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card title="Roles and Permissions">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-            <input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="role name" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
-            <input value={newRoleSlug} onChange={(e) => setNewRoleSlug(e.target.value)} placeholder="role slug" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
-            <input value={newRoleDescription} onChange={(e) => setNewRoleDescription(e.target.value)} placeholder="description" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
-          </div>
-          <button type="button" onClick={() => void onCreateRole()} disabled={busy === 'create-role'} className="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50">
-            {busy === 'create-role' ? 'Creating...' : 'Create Custom Role'}
-          </button>
+        {canManageRoles ? (
+          <Card title="Roles and Permissions" className="scroll-mt-24" id="org-roles">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+              <input value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="role name" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={newRoleSlug} onChange={(e) => setNewRoleSlug(e.target.value)} placeholder="role slug" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={newRoleDescription} onChange={(e) => setNewRoleDescription(e.target.value)} placeholder="description" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+            </div>
+            <button type="button" onClick={() => void onCreateRole()} disabled={busy === 'create-role'} className="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50">
+              {busy === 'create-role' ? 'Creating...' : 'Create Custom Role'}
+            </button>
 
-          <div className="mb-2">
-            <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200">
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>{role.name} ({role.slug})</option>
+            <div className="mb-2">
+              <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200">
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>{role.name} ({role.slug})</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-500 mt-1">Selected role: {selectedRole?.name ?? 'n/a'} {selectedRole?.is_system_role === 1 ? '(system role)' : ''}</p>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto space-y-1">
+              {permissions.map((permission) => (
+                <label key={permission.id} className="flex items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={selectedPermissionIds.includes(permission.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPermissionIds((prev) => [...prev, permission.id]);
+                      } else {
+                        setSelectedPermissionIds((prev) => prev.filter((id) => id !== permission.id));
+                      }
+                    }}
+                  />
+                  <span>{permission.slug}</span>
+                </label>
               ))}
-            </select>
-            <p className="text-[11px] text-slate-500 mt-1">Selected role: {selectedRole?.name ?? 'n/a'} {selectedRole?.is_system_role === 1 ? '(system role)' : ''}</p>
-          </div>
+            </div>
 
-          <div className="max-h-56 overflow-y-auto space-y-1">
-            {permissions.map((permission) => (
-              <label key={permission.id} className="flex items-center gap-2 text-xs text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={selectedPermissionIds.includes(permission.id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedPermissionIds((prev) => [...prev, permission.id]);
-                    } else {
-                      setSelectedPermissionIds((prev) => prev.filter((id) => id !== permission.id));
-                    }
-                  }}
-                />
-                <span>{permission.slug}</span>
-              </label>
-            ))}
-          </div>
+            <button type="button" onClick={() => void onSaveRolePermissions()} disabled={busy === 'save-role-permissions'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50">
+              {busy === 'save-role-permissions' ? 'Saving...' : 'Save Role Permissions'}
+            </button>
+          </Card>
+        ) : null}
 
-          <button type="button" onClick={() => void onSaveRolePermissions()} disabled={busy === 'save-role-permissions'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-slate-200 hover:bg-white/20 disabled:opacity-50">
-            {busy === 'save-role-permissions' ? 'Saving...' : 'Save Role Permissions'}
-          </button>
-        </Card>
-
-        <Card title="Modules (Enable / Configure)">
+        <Card title="Modules (Enable / Configure)" className="scroll-mt-24" id="org-modules">
+          {!canUpdateOrgModules ? (
+            <p className="text-xs text-slate-500 mb-2">Only root can update module subscriptions. Org admins can buy modules below.</p>
+          ) : null}
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {modules.map((module) => (
               <div key={module.id} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
@@ -502,7 +407,7 @@ export function OrgAdminConsolePage() {
                 </div>
                 <select
                   value={module.status ?? 'trial'}
-                  disabled={busy === `module:${module.id}`}
+                  disabled={!canUpdateOrgModules || busy === `module:${module.id}`}
                   onChange={(e) => void onModuleStatusChange(module.id, e.target.value as 'active' | 'trial' | 'expired' | 'suspended')}
                   className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-slate-200"
                 >
@@ -517,7 +422,7 @@ export function OrgAdminConsolePage() {
         </Card>
       </div>
 
-      <Card title="Grant Module Access to Members">
+      <Card title="Grant Module Access to Members" className="scroll-mt-24" id="org-member-access">
         <div className="flex items-center gap-2 mb-3">
           <select
             value={selectedMemberId}
@@ -560,7 +465,7 @@ export function OrgAdminConsolePage() {
         )}
       </Card>
 
-      <Card title="Member Access Requests (Approval Queue)">
+      <Card title="Member Access Requests (Approval Queue)" className="scroll-mt-24" id="org-requests">
         {requests.length === 0 ? (
           <p className="text-sm text-slate-500">No requests yet.</p>
         ) : (
@@ -602,13 +507,13 @@ export function OrgAdminConsolePage() {
       </Card>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card title="Reports and Activity">
+        <Card title="Reports and Activity" className="scroll-mt-24" id="org-reports">
           <pre className="text-xs text-slate-300 bg-black/20 p-3 rounded-lg border border-white/10 overflow-x-auto">
             {JSON.stringify(reports, null, 2)}
           </pre>
         </Card>
 
-        <Card title="Billing Summary">
+        <Card title="Billing Summary" className="scroll-mt-24" id="org-billing">
           {orgBillingSubscriptions.length === 0 ? (
             <p className="text-sm text-slate-500">No active subscriptions for this organization.</p>
           ) : (
@@ -624,56 +529,32 @@ export function OrgAdminConsolePage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card title="Buy Module For Organization">
-          <div className="space-y-2">
-            {orgCatalogModules.map((item, idx) => {
-              const moduleName = String(item.module_name ?? '');
-              return (
-                <div key={`${moduleName}-${idx}`} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-xs text-slate-100">{String(item.display_name ?? moduleName)}</p>
-                    <p className="text-[11px] text-slate-400">{String(item.price_monthly ?? 0)} {String(item.currency ?? '')}/mo</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void onBuyOrgModule(moduleName)}
-                    disabled={busy === `buy-org-module:${moduleName}`}
-                    className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
-                  >
-                    Buy
-                  </button>
+      <Card title="Buy Module For Organization" className="scroll-mt-24" id="org-buy-module">
+        <div className="space-y-2">
+          {orgCatalogModules.map((item, idx) => {
+            const moduleName = String(item.module_name ?? '');
+            const isSubscribed = subscribedModuleNames.has(moduleName.toLowerCase());
+            return (
+              <div key={`${moduleName}-${idx}`} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs text-slate-100">{String(item.display_name ?? moduleName)}</p>
+                  <p className="text-[11px] text-slate-400">{String(item.price_monthly ?? 0)} {String(item.currency ?? '')}/mo</p>
                 </div>
-              );
-            })}
-          </div>
-        </Card>
-        <Card title="Buy Package For Organization">
-          <div className="space-y-2">
-            {orgCatalogPackages.map((item, idx) => {
-              const planName = String(item.plan_name ?? '');
-              return (
-                <div key={`${planName}-${idx}`} className="rounded-lg border border-white/10 bg-white/5 p-2 flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-xs text-slate-100">{String(item.display_name ?? planName)}</p>
-                    <p className="text-[11px] text-slate-400">{String(item.price_monthly ?? 0)} {String(item.currency ?? '')}/mo</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void onBuyOrgPackage(planName)}
-                    disabled={busy === `buy-org-package:${planName}`}
-                    className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
-                  >
-                    Buy
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      </div>
+                <button
+                  type="button"
+                  onClick={() => void onBuyOrgModule(moduleName)}
+                  disabled={isSubscribed || busy === `buy-org-module:${moduleName}`}
+                  className="px-2 py-1 rounded text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+                >
+                  {isSubscribed ? 'Subscribed' : 'Buy'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
-      <Card title="API Keys and Integrations">
+      <Card title="API Keys and Integrations" className="scroll-mt-24" id="org-api-keys">
         <div className="flex items-center gap-2 mb-3">
           <input value={newApiKeyName} onChange={(e) => setNewApiKeyName(e.target.value)} placeholder="API key name" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
           <button type="button" onClick={() => void onCreateApiKey()} disabled={busy === 'create-api-key'} className="px-3 py-2 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50 inline-flex items-center gap-1">

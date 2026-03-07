@@ -1,16 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowUpRight, CalendarClock, CreditCard, LockKeyhole, PackageOpen, Sparkles } from 'lucide-react';
+import { ArrowUpRight, CalendarClock, CreditCard, LockKeyhole, Sparkles } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import {
   buyModule,
-  buyPackage,
   getMyAccess,
   getMySubscriptions,
-  getUpgradeOptions,
-  listPackages,
   listPaidModules,
-  upgradePlan,
-  type UpgradeOption,
   type UserSubscription,
 } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
@@ -23,16 +18,6 @@ type CatalogModule = {
   price_monthly?: number | string;
   price_yearly?: number | string;
   currency?: string;
-};
-
-type CatalogPackage = {
-  plan_name: string;
-  display_name?: string;
-  description?: string;
-  price_monthly?: number | string;
-  price_yearly?: number | string;
-  currency?: string;
-  modules?: string[] | string;
 };
 
 function money(value: string | number | null | undefined, currency = 'USD') {
@@ -48,43 +33,26 @@ function formatDate(dateValue: string | null) {
   return date.toLocaleString();
 }
 
-function toArray(value: string[] | string | undefined): string[] {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-  return [];
-}
-
 export function BillingPage() {
-  const { token, logout, hasPermission, modules: rbacModules, refreshRbac } = useAuth();
+  const { token, logout, hasPermission, refreshRbac, user } = useAuth();
   const [modules, setModules] = useState<CatalogModule[]>([]);
-  const [packages, setPackages] = useState<CatalogPackage[]>([]);
   const [access, setAccess] = useState<string[]>([]);
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
-  const [upgrades, setUpgrades] = useState<UpgradeOption[]>([]);
   const [busyKey, setBusyKey] = useState('');
   const [error, setError] = useState('');
 
   const refresh = useCallback(async () => {
     if (!token) return;
     try {
-      const [moduleData, packageData, accessData, subsData, upgradeData] = await Promise.all([
+      const [moduleData, accessData, subsData] = await Promise.all([
         listPaidModules(token),
-        listPackages(token),
         getMyAccess(token),
         getMySubscriptions(token),
-        getUpgradeOptions(token),
       ]);
 
       setModules(moduleData.modules as CatalogModule[]);
-      setPackages(packageData.packages as CatalogPackage[]);
       setAccess(accessData.modules);
       setSubscriptions(subsData.subscriptions);
-      setUpgrades(upgradeData.upgrades);
       await refreshRbac();
       setError('');
     } catch (err) {
@@ -103,6 +71,11 @@ export function BillingPage() {
     [subscriptions],
   );
 
+  const currentAccess = useMemo(() => {
+    if (user?.isRoot) return ['*'];
+    return access;
+  }, [access, user]);
+
   async function onBuyModule(moduleName: string) {
     if (!token) return;
     if (!hasPermission('billing.update')) {
@@ -115,40 +88,6 @@ export function BillingPage() {
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to buy module');
-    } finally {
-      setBusyKey('');
-    }
-  }
-
-  async function onBuyPackage(planName: string) {
-    if (!token) return;
-    if (!hasPermission('billing.update')) {
-      setError('Missing permission: billing.update');
-      return;
-    }
-    setBusyKey(`buy-package:${planName}`);
-    try {
-      await buyPackage(token, planName);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to buy package');
-    } finally {
-      setBusyKey('');
-    }
-  }
-
-  async function onUpgrade(planName: string) {
-    if (!token) return;
-    if (!hasPermission('billing.update')) {
-      setError('Missing permission: billing.update');
-      return;
-    }
-    setBusyKey(`upgrade:${planName}`);
-    try {
-      await upgradePlan(token, planName, true);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upgrade plan');
     } finally {
       setBusyKey('');
     }
@@ -168,10 +107,10 @@ export function BillingPage() {
 
       <Card title="Current Access">
         <div className="flex flex-wrap gap-2">
-          {[...new Set([...access, ...rbacModules])].length === 0 ? (
+          {currentAccess.length === 0 ? (
             <span className="text-sm text-slate-400">No module access assigned.</span>
           ) : (
-            [...new Set([...access, ...rbacModules])].map((moduleName) => (
+            [...new Set(currentAccess)].map((moduleName) => (
               <span key={moduleName} className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide text-teal border border-teal/40 bg-teal/10">
                 {moduleName}
               </span>
@@ -180,114 +119,58 @@ export function BillingPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card title="My Subscriptions">
-          {activeSubscriptions.length === 0 ? (
-            <p className="text-sm text-slate-500">No active subscriptions.</p>
-          ) : (
-            <ul className="space-y-3">
-              {activeSubscriptions.map((sub) => (
-                <li key={sub.subscriptionId} className="rounded-xl border border-white/10 p-3 bg-white/5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-heading">{sub.plan.displayName ?? sub.plan.name}</p>
-                    <span className="text-[11px] uppercase tracking-wide text-teal">{sub.plan.type}</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">Modules: {sub.plan.modules.join(', ')}</p>
-                  <p className="text-xs text-slate-400 mt-1 inline-flex items-center gap-1">
-                    <CalendarClock className="w-3.5 h-3.5" />
-                    Renews/Ends: {formatDate(sub.renewDate)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card title="Upgrade Options">
-          {upgrades.length === 0 ? (
-            <p className="text-sm text-slate-500">No upgrades available right now.</p>
-          ) : (
-            <ul className="space-y-3">
-              {upgrades.map((plan) => (
-                <li key={plan.planId} className="rounded-xl border border-white/10 p-3 bg-white/5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-heading">{plan.displayName ?? plan.planName}</p>
-                    <span className="text-xs text-slate-300">{money(plan.priceMonthly, plan.currency)}/mo</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">Unlocks: {plan.newlyUnlockedModules.join(', ')}</p>
-                  <button
-                    type="button"
-                    onClick={() => void onUpgrade(plan.planName)}
-                    disabled={busyKey === `upgrade:${plan.planName}` || !hasPermission('billing.update')}
-                    className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
-                  >
-                    {busyKey === `upgrade:${plan.planName}` ? 'Upgrading...' : 'Upgrade'}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card title="Buy Module (Paid)">
+      <Card title="My Subscriptions">
+        {activeSubscriptions.length === 0 ? (
+          <p className="text-sm text-slate-500">No active subscriptions.</p>
+        ) : (
           <ul className="space-y-3">
-            {modules.map((item) => {
-              const owned = access.includes(item.module_name);
-              return (
-                <li key={item.module_name} className="rounded-xl border border-white/10 p-3 bg-white/5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-heading">{item.display_name ?? item.module_name}</p>
-                    <span className="text-xs text-slate-300">{money(item.price_monthly, item.currency)}/mo</span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1">{item.description ?? 'Paid module access.'}</p>
-                  <button
-                    type="button"
-                    onClick={() => void onBuyModule(item.module_name)}
-                    disabled={owned || busyKey === `buy-module:${item.module_name}` || !hasPermission('billing.update')}
-                    className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
-                  >
-                    {owned ? 'Already Active' : busyKey === `buy-module:${item.module_name}` ? 'Processing...' : 'Buy Module'}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-
-        <Card title="Buy Package">
-          <ul className="space-y-3">
-            {packages.map((item) => (
-              <li key={item.plan_name} className="rounded-xl border border-white/10 p-3 bg-white/5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-heading">{item.display_name ?? item.plan_name}</p>
-                  <span className="text-xs text-slate-300">{money(item.price_monthly, item.currency)}/mo</span>
+            {activeSubscriptions.map((sub) => (
+              <li key={sub.subscriptionId} className="rounded-xl border border-white/10 p-3 bg-white/5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-heading">{sub.plan.displayName ?? sub.plan.name}</p>
+                  <span className="text-[11px] uppercase tracking-wide text-teal">{sub.plan.type}</span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">{item.description ?? 'Discounted package.'}</p>
+                <p className="text-xs text-slate-400 mt-1">Modules: {sub.plan.modules.join(', ')}</p>
                 <p className="text-xs text-slate-400 mt-1 inline-flex items-center gap-1">
-                  <PackageOpen className="w-3.5 h-3.5" />
-                  {toArray(item.modules).join(', ')}
+                  <CalendarClock className="w-3.5 h-3.5" />
+                  Renews/Ends: {formatDate(sub.renewDate)}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => void onBuyPackage(item.plan_name)}
-                  disabled={busyKey === `buy-package:${item.plan_name}` || !hasPermission('billing.update')}
-                  className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
-                >
-                  {busyKey === `buy-package:${item.plan_name}` ? 'Processing...' : 'Buy Package'}
-                </button>
               </li>
             ))}
           </ul>
-        </Card>
-      </div>
+        )}
+      </Card>
+
+      <Card title="Buy Module (Paid)">
+        <ul className="space-y-3">
+          {modules.map((item) => {
+            const owned = access.includes(item.module_name);
+            return (
+              <li key={item.module_name} className="rounded-xl border border-white/10 p-3 bg-white/5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-heading">{item.display_name ?? item.module_name}</p>
+                  <span className="text-xs text-slate-300">{money(item.price_monthly, item.currency)}/mo</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">{item.description ?? 'Paid module access.'}</p>
+                <button
+                  type="button"
+                  onClick={() => void onBuyModule(item.module_name)}
+                  disabled={owned || busyKey === `buy-module:${item.module_name}` || !hasPermission('billing.update')}
+                  className="mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal text-black hover:bg-teal/90 disabled:opacity-50"
+                >
+                  {owned ? 'Already Active' : busyKey === `buy-module:${item.module_name}` ? 'Processing...' : 'Buy Module'}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
 
       <Card className="p-5">
         <div className="flex items-start gap-3 text-slate-300">
           <LockKeyhole className="w-4 h-4 text-teal mt-0.5" />
           <p className="text-sm">
-            Use <span className="text-teal font-semibold">TodoKarta</span> for free task workflows. Paid modules are unlocked per module or via bundle upgrades.
+            Use <span className="text-teal font-semibold">TodoKarta</span> for free task workflows. Paid modules are unlocked per module.
           </p>
           <ArrowUpRight className="w-4 h-4 text-teal mt-0.5" />
           <Sparkles className="w-4 h-4 text-teal mt-0.5" />

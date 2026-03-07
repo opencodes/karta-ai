@@ -24,6 +24,8 @@ import { RootOrganizationsPage } from './pages/admin/RootOrganizations';
 import { RootUsersPage } from './pages/admin/RootUsers';
 import { RootOrganizationViewPage } from './pages/admin/RootOrganizationView';
 import { OrgAdminConsolePage } from './pages/admin/OrgAdminConsole';
+import { OrgAdminUsersPage } from './pages/admin/OrgAdminUsers';
+import { RootBillingPage } from './pages/admin/RootBilling';
 
 function LockedAccess({ message }: { message: string }) {
   return (
@@ -65,7 +67,9 @@ const App = () => {
               <Route path="/root/organizations" element={user?.isRoot ? <RootOrganizationsPage /> : <LockedAccess message="Root access required." />} />
               <Route path="/root/organizations/:orgId" element={user?.isRoot ? <RootOrganizationViewPage /> : <LockedAccess message="Root access required." />} />
               <Route path="/root/users" element={user?.isRoot ? <RootUsersPage /> : <LockedAccess message="Root access required." />} />
+              <Route path="/root/modules" element={user?.isRoot ? <RootBillingPage /> : <LockedAccess message="Root access required." />} />
               <Route path="/org-console" element={isOrgAdmin || user?.isRoot ? <OrgAdminConsolePage /> : <LockedAccess message="Organization admin access required." />} />
+              <Route path="/org-users" element={isOrgAdmin || user?.isRoot ? <OrgAdminUsersPage /> : <LockedAccess message="Organization admin access required." />} />
               <Route path="/todo" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <TodoPage />} />
               <Route path="/todokarta" element={isOrgAdmin ? <LockedAccess message="Organization admins cannot access module workspaces." /> : <TodoPage />} />
               <Route path="/dashboard" element={<AdminDashboard />} />
