@@ -22,7 +22,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [primaryColor, setPrimaryColor] = useState(() => {
-    return localStorage.getItem('primaryColor') || '#64FFDA';
+    return localStorage.getItem('primaryColor') || '#10b981';
   });
 
   const [permissions, setPermissions] = useState<Record<string, boolean>>(() => {

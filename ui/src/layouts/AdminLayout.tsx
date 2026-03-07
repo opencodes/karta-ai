@@ -156,7 +156,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       )}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-8 h-8 bg-teal rounded-lg flex items-center justify-center">
-            <Zap className="text-black w-5 h-5 fill-current" />
+            <Zap className={cn('w-5 h-5 fill-current', isLight ? 'text-white' : 'text-black')} />
           </div>
           <span className={cn('text-xl font-display font-bold tracking-tight', isLight ? 'text-slate-900' : 'text-white')}>KARTA AI</span>
         </div>

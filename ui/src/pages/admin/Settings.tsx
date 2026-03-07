@@ -9,7 +9,6 @@ export const Settings = () => {
   const { theme, toggleTheme, primaryColor, setPrimaryColor, permissions, updatePermission, isAdmin } = useTheme();
 
   const colors = [
-    { name: 'Teal', value: '#64FFDA' },
     { name: 'Blue', value: '#3b82f6' },
     { name: 'Purple', value: '#a855f7' },
     { name: 'Rose', value: '#f43f5e' },
