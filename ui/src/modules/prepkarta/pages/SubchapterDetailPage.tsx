@@ -129,6 +129,7 @@ export function SubchapterDetailPage() {
   const [generating, setGenerating] = React.useState(false);
   const [generatingMcq, setGeneratingMcq] = React.useState(false);
   const [selectedOptionsByQuestion, setSelectedOptionsByQuestion] = React.useState<Record<string, McqOptionKey[]>>({});
+  const [submittedStateByQuestion, setSubmittedStateByQuestion] = React.useState<Record<string, { submitted: boolean; isCorrect: boolean }>>({});
 
   React.useEffect(() => {
     async function loadDetails() {
@@ -239,6 +240,15 @@ export function SubchapterDetailPage() {
     });
   }
 
+  function submitQuestion(questionKey: string, correctAnswers: McqOptionKey[]) {
+    const selected = selectedOptionsByQuestion[questionKey] ?? [];
+    const selectedSorted = [...selected].sort();
+    const correctSorted = [...correctAnswers].sort();
+    const isCorrect = selectedSorted.length === correctSorted.length
+      && selectedSorted.every((item, idx) => item === correctSorted[idx]);
+    setSubmittedStateByQuestion((prev) => ({ ...prev, [questionKey]: { submitted: true, isCorrect } }));
+  }
+
   return (
     <Card className="p-5 space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -306,6 +316,8 @@ export function SubchapterDetailPage() {
                         const questionKey = `${index}-${mcq.id}`;
                         const multiple = mcq.correctAnswers.length > 1 || /select all/i.test(mcq.question);
                         const selected = selectedOptionsByQuestion[questionKey] ?? [];
+                        const submittedState = submittedStateByQuestion[questionKey];
+                        const isSubmitted = submittedState?.submitted ?? false;
                         const badgeClass = mcq.difficulty === 'hard'
                           ? 'text-red-400 border-red-400/40'
                           : mcq.difficulty === 'medium'
@@ -319,12 +331,13 @@ export function SubchapterDetailPage() {
                             </div>
                             <div className="space-y-1.5">
                               {(['A', 'B', 'C', 'D'] as McqOptionKey[]).map((key) => (
-                                <label key={key} className="flex items-start gap-2 rounded-md border border-main px-2 py-1.5 cursor-pointer">
+                                <label key={key} className="flex items-start gap-2 rounded-md px-2 py-1.5 cursor-pointer">
                                   <input
                                     type={multiple ? 'checkbox' : 'radio'}
                                     name={multiple ? `${questionKey}-${key}` : questionKey}
                                     checked={selected.includes(key)}
                                     onChange={() => updateSelection(questionKey, key, multiple)}
+                                    disabled={isSubmitted}
                                     className="mt-0.5"
                                   />
                                   <span className="text-xs text-heading">
@@ -333,9 +346,25 @@ export function SubchapterDetailPage() {
                                 </label>
                               ))}
                             </div>
-                            <p className="text-xs text-slate-500">
-                              Correct: {mcq.correctAnswers.join(', ')} | {mcq.explanation}
-                            </p>
+                            {!isSubmitted ? (
+                              <button
+                                type="button"
+                                className="btn-secondary-ui px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+                                disabled={selected.length === 0}
+                                onClick={() => submitQuestion(questionKey, mcq.correctAnswers)}
+                              >
+                                Submit Answer
+                              </button>
+                            ) : (
+                              <div className="space-y-1">
+                                <p className={`text-xs font-semibold ${submittedState?.isCorrect ? 'text-emerald-500' : 'text-red-400'}`}>
+                                  {submittedState?.isCorrect ? 'Correct' : 'Incorrect'}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  Correct: {mcq.correctAnswers.join(', ')} | {mcq.explanation}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
