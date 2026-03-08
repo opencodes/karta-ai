@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool } from '../../../db.js';
 import type { AuthedRequest } from '../../../middleware/auth.js';
+import { env } from '../../../config.js';
+import { HuggingFaceClient } from '../../../services/huggingFaceClient.js';
+import { buildSubchapterPrompt } from '../prepkartaPrompt.js';
 import {
   calculateMasteryScore,
   computeRepeatAfterAttempts,
@@ -41,6 +44,14 @@ const createSubchapterSchema = z.object({
 
 const updateSubchapterSchema = z.object({
   name: z.string().trim().min(2).max(160),
+});
+
+const summarizeSubchapterSchema = z.object({
+  ask: z.string().trim().max(400).optional(),
+  history: z.array(z.object({
+    question: z.string().trim().min(1).max(400),
+    answer: z.string().trim().min(1).max(4000),
+  })).max(8).optional(),
 });
 
 type SubjectRow = {
@@ -95,10 +106,12 @@ type SubchapterRow = {
 };
 
 export const prepkartaPracticeRouter = Router();
+const hfClient = new HuggingFaceClient();
 
 function getAuthed(req: unknown): AuthedRequest['user'] {
   return (req as AuthedRequest).user;
 }
+
 
 prepkartaPracticeRouter.get('/subjects', async (req, res) => {
   const authed = getAuthed(req);
@@ -397,6 +410,98 @@ prepkartaPracticeRouter.delete('/subchapters/:id', async (req, res) => {
     [id],
   );
   return res.json({ message: 'Subchapter deleted' });
+});
+
+prepkartaPracticeRouter.get('/subchapters/:id', async (req, res) => {
+  const { id } = req.params;
+  const [rows] = await pool.query(
+    `SELECT sc.id AS subchapter_id,
+            sc.name AS subchapter_name,
+            c.id AS chapter_id,
+            c.name AS chapter_name,
+            s.id AS subject_id,
+            s.name AS subject_name
+     FROM prepkarta_subchapters sc
+     INNER JOIN prepkarta_concepts c ON c.id = sc.chapter_id
+     INNER JOIN prepkarta_subjects s ON s.id = c.subject_id
+     WHERE sc.id = ?
+     LIMIT 1`,
+    [id],
+  );
+
+  const row = (rows as Array<{
+    subchapter_id: string;
+    subchapter_name: string;
+    chapter_id: string;
+    chapter_name: string;
+    subject_id: string;
+    subject_name: string;
+  }>)[0];
+
+  if (!row) {
+    return res.status(404).json({ error: 'Subchapter not found' });
+  }
+
+  return res.json({
+    subchapter: {
+      id: row.subchapter_id,
+      name: row.subchapter_name,
+      chapterId: row.chapter_id,
+      chapterName: row.chapter_name,
+      subjectId: row.subject_id,
+      subjectName: row.subject_name,
+    },
+  });
+});
+
+prepkartaPracticeRouter.post('/subchapters/:id/summary', async (req, res) => {
+  const parsed = summarizeSubchapterSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  if (!env.HF_TOKEN || !hfClient.isAvailable()) {
+    return res.status(400).json({ error: 'AI summary is not configured. Please set HF_TOKEN.' });
+  }
+
+  const { id } = req.params;
+  const [rows] = await pool.query(
+    `SELECT sc.name AS subchapter_name,
+            c.name AS chapter_name,
+            s.name AS subject_name
+     FROM prepkarta_subchapters sc
+     INNER JOIN prepkarta_concepts c ON c.id = sc.chapter_id
+     INNER JOIN prepkarta_subjects s ON s.id = c.subject_id
+     WHERE sc.id = ?
+     LIMIT 1`,
+    [id],
+  );
+  const row = (rows as Array<{ subchapter_name: string; chapter_name: string; subject_name: string }>)[0];
+  if (!row) {
+    return res.status(404).json({ error: 'Subchapter not found' });
+  }
+
+  const prompt = buildSubchapterPrompt({
+    subject: row.subject_name,
+    chapter: row.chapter_name,
+    subchapter: row.subchapter_name,
+    ask: parsed.data.ask,
+    history: parsed.data.history ?? []
+  });
+  console.log('prompt',prompt)
+  const summary = await hfClient.generate(prompt, Math.min(env.HF_MAX_TOKENS, 900));
+  if (!summary) {
+    return res.status(502).json({ error: 'Failed to generate subchapter summary. Please try again.' });
+  }
+
+  return res.json({
+    summary: summary.trim(),
+    context: {
+      subject: row.subject_name,
+      chapter: row.chapter_name,
+      subchapter: row.subchapter_name,
+    },
+  });
 });
 
 prepkartaPracticeRouter.get('/concepts/:id/questions', async (req, res) => {

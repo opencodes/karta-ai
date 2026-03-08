@@ -310,6 +310,34 @@ export async function deletePrepKartaSubchapter(token: string, subchapterId: str
   });
 }
 
+export type PrepKartaSubchapterDetails = {
+  id: string;
+  name: string;
+  chapterId: string;
+  chapterName: string;
+  subjectId: string;
+  subjectName: string;
+};
+
+export async function getPrepKartaSubchapter(token: string, subchapterId: string): Promise<{ subchapter: PrepKartaSubchapterDetails }> {
+  return request(`/api/prepkarta/subchapters/${subchapterId}`, { token });
+}
+
+export async function summarizePrepKartaSubchapter(
+  token: string,
+  subchapterId: string,
+  payload: {
+    ask?: string;
+    history?: Array<{ question: string; answer: string }>;
+  },
+): Promise<{ summary: string; context: { subject: string; chapter: string; subchapter: string } }> {
+  return request(`/api/prepkarta/subchapters/${subchapterId}/summary`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
 export async function getPrepKartaQuestion(
   token: string,
   conceptId: string,

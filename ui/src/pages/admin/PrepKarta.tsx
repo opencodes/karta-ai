@@ -11,6 +11,7 @@ import { ConceptModesPage } from '../../modules/prepkarta/pages/ConceptModesPage
 import { PracticePage } from '../../modules/prepkarta/pages/PracticePage';
 import { ReviewPage } from '../../modules/prepkarta/pages/ReviewPage';
 import { AnalyticsPage } from '../../modules/prepkarta/pages/AnalyticsPage';
+import { SubchapterDetailPage } from '../../modules/prepkarta/pages/SubchapterDetailPage';
 
 function ConceptListRoute({ token }: { token: string }) {
   const params = useParams<{ subjectId: string }>();
@@ -156,6 +157,7 @@ export function PrepKartaPage() {
         <Route path="/concept/:conceptId" element={<ConceptModesRoute token={token} />} />
         <Route path="/practice/:conceptId" element={<PracticeRoute token={token} />} />
         <Route path="/review/:attemptId" element={<ReviewPage />} />
+        <Route path="/subchapter/:subchapterId" element={<SubchapterDetailPage />} />
         <Route path="/:subjectId" element={<ConceptListRoute token={token} />} />
         <Route path="*" element={<Navigate to="." replace />} />
       </Routes>

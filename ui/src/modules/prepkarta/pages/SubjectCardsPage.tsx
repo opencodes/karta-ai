@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import {
   createPrepKartaSubject,
@@ -115,23 +116,27 @@ export function SubjectCardsPage({ token }: Props) {
                   </button>
                   <button
                     type="button"
-                    className="btn-secondary-ui px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    className="btn-secondary-ui p-2 rounded-lg text-xs font-semibold"
                     onClick={() => {
                       setEditingSubjectId(subject.id);
                       setEditingSubjectName(subject.name);
                     }}
+                    title="Edit subject"
+                    aria-label="Edit subject"
                   >
-                    Edit
+                    <Pencil className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-400/40 text-red-400"
+                    className="p-2 rounded-lg text-xs font-semibold border border-red-400/40 text-red-400"
                     onClick={async () => {
                       await deletePrepKartaSubject(token, subject.id);
                       await refreshSubjects();
                     }}
+                    title="Delete subject"
+                    aria-label="Delete subject"
                   >
-                    Delete
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </>
