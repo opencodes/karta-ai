@@ -8,6 +8,13 @@ DROP TRIGGER IF EXISTS trg_users_prevent_root_delete;
 DROP TABLE IF EXISTS feature_usage_logs;
 DROP TABLE IF EXISTS module_usage;
 DROP TABLE IF EXISTS user_module_access;
+DROP TABLE IF EXISTS prepkarta_user_answer_history;
+DROP TABLE IF EXISTS prepkarta_user_concept_progress;
+DROP TABLE IF EXISTS prepkarta_subchapters;
+DROP TABLE IF EXISTS prepkarta_options;
+DROP TABLE IF EXISTS prepkarta_questions;
+DROP TABLE IF EXISTS prepkarta_concepts;
+DROP TABLE IF EXISTS prepkarta_subjects;
 DROP TABLE IF EXISTS edukarta_chapter_qa;
 DROP TABLE IF EXISTS edukarta_subject_chapters;
 DROP TABLE IF EXISTS edukarta_student_profiles;
@@ -117,6 +124,100 @@ CREATE TABLE edukarta_chapter_qa (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_edukarta_chapter_qa_org
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
+);
+
+CREATE TABLE prepkarta_subjects (
+  id CHAR(36) PRIMARY KEY,
+  name VARCHAR(80) NOT NULL UNIQUE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE prepkarta_concepts (
+  id CHAR(36) PRIMARY KEY,
+  subject_id CHAR(36) NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  total_questions INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_prepkarta_subject_concept (subject_id, name),
+  INDEX idx_prepkarta_concepts_subject (subject_id),
+  CONSTRAINT fk_prepkarta_concepts_subject
+    FOREIGN KEY (subject_id) REFERENCES prepkarta_subjects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE prepkarta_questions (
+  id CHAR(36) PRIMARY KEY,
+  concept_id CHAR(36) NOT NULL,
+  type ENUM('single_choice', 'multiple_choice') NOT NULL DEFAULT 'single_choice',
+  question_text TEXT NOT NULL,
+  difficulty ENUM('easy', 'medium', 'hard') NOT NULL DEFAULT 'medium',
+  explanation TEXT NOT NULL,
+  question_order INT NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_prepkarta_questions_concept_order (concept_id, question_order),
+  CONSTRAINT fk_prepkarta_questions_concept
+    FOREIGN KEY (concept_id) REFERENCES prepkarta_concepts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE prepkarta_options (
+  id CHAR(36) PRIMARY KEY,
+  question_id CHAR(36) NOT NULL,
+  text VARCHAR(500) NOT NULL,
+  is_correct TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_prepkarta_options_question (question_id),
+  CONSTRAINT fk_prepkarta_options_question
+    FOREIGN KEY (question_id) REFERENCES prepkarta_questions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE prepkarta_user_concept_progress (
+  id CHAR(36) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  concept_id CHAR(36) NOT NULL,
+  last_question_index INT NOT NULL DEFAULT 0,
+  mastery_score DECIMAL(8,4) NOT NULL DEFAULT 0.0000,
+  attempts_count INT NOT NULL DEFAULT 0,
+  correct_answers INT NOT NULL DEFAULT 0,
+  wrong_answers INT NOT NULL DEFAULT 0,
+  total_practice_seconds INT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_prepkarta_user_concept_progress (user_id, concept_id),
+  INDEX idx_prepkarta_user_concept_progress_user (user_id),
+  CONSTRAINT fk_prepkarta_user_concept_progress_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_prepkarta_user_concept_progress_concept
+    FOREIGN KEY (concept_id) REFERENCES prepkarta_concepts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE prepkarta_user_answer_history (
+  id CHAR(36) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
+  concept_id CHAR(36) NOT NULL,
+  question_id CHAR(36) NOT NULL,
+  selected_options JSON NOT NULL,
+  is_correct TINYINT(1) NOT NULL DEFAULT 0,
+  repetition_level INT NOT NULL DEFAULT 0,
+  repeat_after_attempts INT NOT NULL DEFAULT 0,
+  time_spent_seconds INT NOT NULL DEFAULT 0,
+  attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_prepkarta_answer_user_concept (user_id, concept_id, attempted_at),
+  INDEX idx_prepkarta_answer_question (question_id),
+  CONSTRAINT fk_prepkarta_answer_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_prepkarta_answer_concept
+    FOREIGN KEY (concept_id) REFERENCES prepkarta_concepts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_prepkarta_answer_question
+    FOREIGN KEY (question_id) REFERENCES prepkarta_questions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE prepkarta_subchapters (
+  id CHAR(36) PRIMARY KEY,
+  chapter_id CHAR(36) NOT NULL,
+  name VARCHAR(160) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_prepkarta_chapter_subchapter (chapter_id, name),
+  INDEX idx_prepkarta_subchapters_chapter (chapter_id),
+  CONSTRAINT fk_prepkarta_subchapters_chapter
+    FOREIGN KEY (chapter_id) REFERENCES prepkarta_concepts(id) ON DELETE CASCADE
 );
 
 ALTER TABLE organizations

@@ -196,6 +196,170 @@ export async function saveEduKartaChapterTurn(
   });
 }
 
+export type PrepKartaSubject = {
+  id: string;
+  name: string;
+  progress: number;
+  attempts: number;
+};
+
+export type PrepKartaConcept = {
+  id: string;
+  subjectId: string;
+  name: string;
+  totalQuestions: number;
+  attemptedQuestions: number;
+  masteryScore: number;
+  masteryStatus: 'mastered' | 'in_progress' | 'weak';
+  progressPercent: number;
+  weak: boolean;
+};
+
+export type PrepKartaQuestion = {
+  id: string;
+  conceptId: string;
+  type: 'single_choice' | 'multiple_choice';
+  questionText: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  questionOrder: number;
+  options: Array<{ id: string; text: string }>;
+};
+
+export async function listPrepKartaSubjects(token: string): Promise<{ subjects: PrepKartaSubject[] }> {
+  return request('/api/prepkarta/subjects', { token });
+}
+
+export async function createPrepKartaSubject(token: string, payload: { name: string }): Promise<{ message: string }> {
+  return request('/api/prepkarta/subjects', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export async function updatePrepKartaSubject(token: string, subjectId: string, payload: { name: string }): Promise<{ message: string }> {
+  return request(`/api/prepkarta/subjects/${subjectId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  });
+}
+
+export async function deletePrepKartaSubject(token: string, subjectId: string): Promise<{ message: string }> {
+  return request(`/api/prepkarta/subjects/${subjectId}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+export async function listPrepKartaConcepts(token: string, subjectId: string): Promise<{ concepts: PrepKartaConcept[] }> {
+  return request(`/api/prepkarta/subjects/${subjectId}/concepts`, { token });
+}
+
+export async function listPrepKartaChapters(token: string, subjectId: string): Promise<{ chapters: Array<{ id: string; subjectId: string; name: string; totalQuestions: number }> }> {
+  return request(`/api/prepkarta/subjects/${subjectId}/chapters`, { token });
+}
+
+export async function createPrepKartaChapter(token: string, subjectId: string, payload: { name: string }): Promise<{ message: string }> {
+  return request(`/api/prepkarta/subjects/${subjectId}/chapters`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export async function updatePrepKartaChapter(token: string, chapterId: string, payload: { name: string }): Promise<{ message: string }> {
+  return request(`/api/prepkarta/chapters/${chapterId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  });
+}
+
+export async function deletePrepKartaChapter(token: string, chapterId: string): Promise<{ message: string }> {
+  return request(`/api/prepkarta/chapters/${chapterId}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+export async function listPrepKartaSubchapters(token: string, chapterId: string): Promise<{ subchapters: Array<{ id: string; chapterId: string; name: string }> }> {
+  return request(`/api/prepkarta/chapters/${chapterId}/subchapters`, { token });
+}
+
+export async function createPrepKartaSubchapter(token: string, chapterId: string, payload: { name: string }): Promise<{ message: string }> {
+  return request(`/api/prepkarta/chapters/${chapterId}/subchapters`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export async function updatePrepKartaSubchapter(token: string, subchapterId: string, payload: { name: string }): Promise<{ message: string }> {
+  return request(`/api/prepkarta/subchapters/${subchapterId}`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  });
+}
+
+export async function deletePrepKartaSubchapter(token: string, subchapterId: string): Promise<{ message: string }> {
+  return request(`/api/prepkarta/subchapters/${subchapterId}`, {
+    method: 'DELETE',
+    token,
+  });
+}
+
+export async function getPrepKartaQuestion(
+  token: string,
+  conceptId: string,
+  mode: 'resume' | 'weak' | 'random',
+): Promise<{ mode: string; question: PrepKartaQuestion; progress: { attempted: number; total: number } }> {
+  return request(`/api/prepkarta/concepts/${conceptId}/questions?mode=${mode}`, { token });
+}
+
+export async function submitPrepKartaAnswer(
+  token: string,
+  questionId: string,
+  payload: { selectedOptionIds: string[]; timeSpentSeconds: number },
+): Promise<{
+  attempt: {
+    questionId: string;
+    conceptId: string;
+    isCorrect: boolean;
+    correctOptionIds: string[];
+    explanation: string;
+    repetitionLevel: number;
+    repeatAfterAttempts: number;
+  };
+}> {
+  return request(`/api/prepkarta/questions/${questionId}/answer`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export async function getPrepKartaConceptProgress(
+  token: string,
+  conceptId: string,
+): Promise<{ progress: Record<string, unknown> }> {
+  return request(`/api/prepkarta/concepts/${conceptId}/progress`, { token });
+}
+
+export async function getPrepKartaConceptResume(
+  token: string,
+  conceptId: string,
+): Promise<{ resume: Record<string, unknown> }> {
+  return request(`/api/prepkarta/concepts/${conceptId}/resume`, { token });
+}
+
+export async function getPrepKartaAnalytics(
+  token: string,
+): Promise<{ analytics: Record<string, unknown> }> {
+  return request('/api/prepkarta/user/analytics', { token });
+}
+
 export async function createTask(token: string, rawInput: string): Promise<{ task: TaskItem }> {
   return request('/api/todokarta/tasks/parse-create', {
     method: 'POST',

@@ -7,6 +7,7 @@ export const PrepKartaModule: KartaModule = {
   requiredSubscription: ['PRO', 'ENTERPRISE'],
   backend: {
     routes: [
+      { routeKey: 'prepkarta.practice', mountPath: '/', requiresAuth: true },
       { routeKey: 'prepkarta.exams', mountPath: '/exams', requiresAuth: true },
     ],
   },

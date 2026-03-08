@@ -1,9 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Brain, Lock } from 'lucide-react';
+import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { createModuleAccessRequest, listMyModuleAccessRequests } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { ManagePrepKartaPage } from '../../modules/prepkarta/pages/ManagePrepKartaPage';
+import { SubjectCardsPage } from '../../modules/prepkarta/pages/SubjectCardsPage';
+import { ConceptListPage } from '../../modules/prepkarta/pages/ConceptListPage';
+import { ConceptModesPage } from '../../modules/prepkarta/pages/ConceptModesPage';
+import { PracticePage } from '../../modules/prepkarta/pages/PracticePage';
+import { ReviewPage } from '../../modules/prepkarta/pages/ReviewPage';
+import { AnalyticsPage } from '../../modules/prepkarta/pages/AnalyticsPage';
+
+function ConceptListRoute({ token }: { token: string }) {
+  const params = useParams<{ subjectId: string }>();
+  if (!params.subjectId) return null;
+  return <ConceptListPage token={token} subjectId={params.subjectId} />;
+}
+
+function SubjectManageRoute({ token }: { token: string }) {
+  const params = useParams<{ subjectId: string }>();
+  if (!params.subjectId) return null;
+  return <ManagePrepKartaPage token={token} subjectId={params.subjectId} />;
+}
+
+function ConceptModesRoute({ token }: { token: string }) {
+  const params = useParams<{ conceptId: string }>();
+  if (!params.conceptId) return null;
+  return <ConceptModesPage token={token} conceptId={params.conceptId} />;
+}
+
+function PracticeRoute({ token }: { token: string }) {
+  const params = useParams<{ conceptId: string }>();
+  if (!params.conceptId) return null;
+  return <PracticePage token={token} conceptId={params.conceptId} />;
+}
 
 export function PrepKartaPage() {
   const { token, user, refreshRbac, logout } = useAuth();
@@ -105,10 +136,29 @@ export function PrepKartaPage() {
     );
   }
 
+  if (!token) {
+    return <Card className="p-6"><p className="text-sm text-slate-500">Token missing. Please login again.</p></Card>;
+  }
+
   return (
-    <Card className="p-6 space-y-2">
-      <div className="flex items-center gap-2"><Brain className="w-4 h-4 text-teal" /><p className="text-sm font-semibold text-heading">PrepKarta</p></div>
-      <p className="text-sm text-slate-400">PrepKarta module is active for your account.</p>
-    </Card>
+    <div className="space-y-4">
+      <Card className="p-5">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-teal" />
+          <p className="text-sm font-semibold text-heading">PrepKarta - Micro Practice Interview Engine</p>
+        </div>
+      </Card>
+
+      <Routes>
+        <Route path="/" element={<SubjectCardsPage token={token} />} />
+        <Route path="/subject/:subjectId" element={<SubjectManageRoute token={token} />} />
+        <Route path="/analytics" element={<AnalyticsPage token={token} />} />
+        <Route path="/concept/:conceptId" element={<ConceptModesRoute token={token} />} />
+        <Route path="/practice/:conceptId" element={<PracticeRoute token={token} />} />
+        <Route path="/review/:attemptId" element={<ReviewPage />} />
+        <Route path="/:subjectId" element={<ConceptListRoute token={token} />} />
+        <Route path="*" element={<Navigate to="." replace />} />
+      </Routes>
+    </div>
   );
 }

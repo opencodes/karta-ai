@@ -81,7 +81,7 @@ const App = () => {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/account" element={<Navigate to="/admin/profile" replace />} />
               <Route path="/edukarta/*" element={<EduKartaPage />} />
-              <Route path="/prepkarta" element={<PrepKartaPage />} />
+              <Route path="/prepkarta/*" element={<PrepKartaPage />} />
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/contacts" element={<Contacts />} />
