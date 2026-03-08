@@ -3,6 +3,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 export type User = {
   id: string;
   email: string;
+  fullName: string | null;
+  phoneNumber: string | null;
   role: 'root' | 'superadmin' | 'admin' | 'member';
   isRoot: boolean;
   subscription: 'FREE' | 'PRO' | 'ENTERPRISE';
@@ -86,6 +88,17 @@ export async function signup(email: string, password: string): Promise<{ token: 
 
 export async function me(token: string): Promise<{ user: User }> {
   return request('/api/auth/me', { token });
+}
+
+export async function updateMyProfile(
+  token: string,
+  payload: { fullName: string; phoneNumber: string },
+): Promise<{ user: User; message: string }> {
+  return request('/api/auth/me/profile', {
+    method: 'PATCH',
+    token,
+    body: payload,
+  });
 }
 
 export async function getEduKartaStudentProfile(token: string): Promise<{ profile: EduKartaStudentProfile | null }> {

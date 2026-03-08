@@ -38,6 +38,8 @@ export type SubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE';
 export type UserRecord = {
   id: string;
   email: string;
+  full_name: string | null;
+  phone_number: string | null;
   role: UserRole;
   is_root: 0 | 1;
   organization_id: string | null;
@@ -51,6 +53,8 @@ export type UserRecord = {
 export type UserDto = {
   id: string;
   email: string;
+  fullName: string | null;
+  phoneNumber: string | null;
   role: UserRole;
   isRoot: boolean;
   subscription: SubscriptionTier;

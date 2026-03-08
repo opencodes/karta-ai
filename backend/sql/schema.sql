@@ -56,6 +56,8 @@ CREATE TABLE organizations (
 CREATE TABLE users (
   id CHAR(36) PRIMARY KEY,
   email VARCHAR(191) NOT NULL UNIQUE,
+  full_name VARCHAR(120) NULL,
+  phone_number VARCHAR(20) NULL,
   password_hash CHAR(64) NOT NULL,
   role ENUM('root', 'superadmin', 'admin', 'member') NOT NULL DEFAULT 'member',
   is_root TINYINT(1) NOT NULL DEFAULT 0,

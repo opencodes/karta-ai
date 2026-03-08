@@ -18,7 +18,7 @@ import { SubjectChaptersSection } from '../sections/SubjectChaptersSection';
 
 const TOTAL_STEPS = 4;
 const BOARD_OPTIONS = ['CBSE', 'ICSE', 'State Board', 'IB', 'Cambridge'];
-const CLASS_OPTIONS = ['6', '7', '8', '9', '10', '11', '12'];
+const CLASS_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 
 const SUBJECT_RECOMMENDATIONS: Record<string, string[]> = {
   default: ['English', 'Mathematics', 'Science', 'Social Science'],

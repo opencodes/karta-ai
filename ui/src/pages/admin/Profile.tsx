@@ -7,6 +7,7 @@ import {
   getEduKartaStudentProfile,
   listEduKartaSubjectChapters,
   listUsers,
+  updateMyProfile,
   updateUserRole,
   type EduKartaStudentProfile,
   type ManageableUser,
@@ -14,12 +15,16 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export function ProfilePage() {
-  const { token, user, logout, rbac, modules, permissions, roles, refreshRbac } = useAuth();
+  const { token, user, logout, rbac, modules, permissions, roles, refreshRbac, updateUser } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<ManageableUser[]>([]);
   const [savingUserId, setSavingUserId] = useState('');
   const [permissionChecks, setPermissionChecks] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? '');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [studentProfile, setStudentProfile] = useState<EduKartaStudentProfile | null>(null);
   const [chaptersBySubject, setChaptersBySubject] = useState<Record<string, string[]>>({});
 
@@ -93,6 +98,36 @@ export function ProfilePage() {
     void loadStudentProfile();
   }, [token, user]);
 
+  useEffect(() => {
+    setFullName(user?.fullName ?? '');
+    setPhoneNumber(user?.phoneNumber ?? '');
+  }, [user?.fullName, user?.phoneNumber]);
+
+  async function onSaveMyProfile() {
+    if (!token) return;
+    setSavingProfile(true);
+    setError('');
+    setMessage('');
+    try {
+      const response = await updateMyProfile(token, {
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+      });
+      updateUser(response.user);
+      setFullName(response.user.fullName ?? '');
+      setPhoneNumber(response.user.phoneNumber ?? '');
+      setMessage(response.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  const hasProfileChanges =
+    fullName.trim() !== (user?.fullName ?? '').trim() ||
+    phoneNumber.trim() !== (user?.phoneNumber ?? '').trim();
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -100,7 +135,33 @@ export function ProfilePage() {
           <CircleUserRound className="w-4 h-4 text-teal" />
           <p className="text-xs font-bold text-teal uppercase tracking-widest">Profile</p>
         </div>
-        <h1 className="text-xl md:text-2xl font-display font-semibold text-heading">{user?.email}</h1>
+        <h1 className="text-xl md:text-2xl font-display font-semibold text-heading">{fullName || user?.email}</h1>
+        <p className="text-sm text-slate-500 mt-1">Email: {user?.email}</p>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="form-control-ui h-10 rounded-xl"
+            placeholder="Full name"
+          />
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="form-control-ui h-10 rounded-xl"
+            placeholder="Phone number"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => void onSaveMyProfile()}
+          disabled={savingProfile || !hasProfileChanges}
+          className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50"
+        >
+          {savingProfile ? 'Saving...' : 'Save Profile'}
+        </button>
+        {message ? <p className="text-sm text-teal mt-2">{message}</p> : null}
         <p className="text-sm text-slate-500 mt-1">Role: {user?.role ?? 'member'}</p>
         <p className="text-sm text-slate-500 mt-1">Organization: {rbac?.context.organizationId ?? 'Not assigned'}</p>
         <p className="text-sm text-slate-500 mt-1">Status: {rbac?.context.status ?? 'unknown'}</p>

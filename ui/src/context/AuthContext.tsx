@@ -12,6 +12,7 @@ type AuthContextType = {
   hasPermission: (permission: string) => boolean;
   hasModule: (moduleSlug: string) => boolean;
   refreshRbac: () => Promise<RbacSnapshot | null>;
+  updateUser: (nextUser: User) => void;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -63,6 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMemberModules([]);
       return [];
     }
+  }, []);
+
+  const updateUser = useCallback((nextUser: User) => {
+    setUser(nextUser);
+    localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -158,11 +164,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hasPermission,
       hasModule,
       refreshRbac,
+      updateUser,
       login,
       signup,
       logout,
     }),
-    [token, user, rbac, permissions, modules, roles, hasPermission, hasModule, refreshRbac, login, signup, logout],
+    [token, user, rbac, permissions, modules, roles, hasPermission, hasModule, refreshRbac, updateUser, login, signup, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

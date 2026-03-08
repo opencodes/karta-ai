@@ -17,6 +17,11 @@ const signupSchema = z.object({
   password: z.string().min(6),
 });
 
+const updateMyProfileSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  phoneNumber: z.string().trim().regex(/^[0-9+\-\s()]{7,20}$/),
+});
+
 const updateRoleSchema = z.object({
   role: z.enum(['admin', 'superadmin', 'member']),
 });
@@ -48,10 +53,14 @@ const updateOrganizationOwnerSchema = z.object({
   ownerUserId: z.string().uuid().nullable(),
 });
 
-function toUserDto(row: Pick<UserRecord, 'id' | 'email' | 'role' | 'is_root'>): UserDto {
+function toUserDto(
+  row: Pick<UserRecord, 'id' | 'email' | 'role' | 'is_root'> & Partial<Pick<UserRecord, 'full_name' | 'phone_number'>>,
+): UserDto {
   return {
     id: row.id,
     email: row.email,
+    fullName: row.full_name ?? null,
+    phoneNumber: row.phone_number ?? null,
     role: row.role,
     isRoot: row.is_root === 1,
     subscription: roleToSubscription(row.role),
@@ -99,9 +108,9 @@ authRouter.post('/signup', async (req, res) => {
     );
 
     await connection.query(
-      `INSERT INTO users (id, email, password_hash, role, organization_id, status, is_active)
-       VALUES (?, ?, SHA2(?, 256), 'member', ?, 'active', 1)`,
-      [userId, email, password, organizationId],
+      `INSERT INTO users (id, email, full_name, phone_number, password_hash, role, organization_id, status, is_active)
+       VALUES (?, ?, ?, NULL, SHA2(?, 256), 'member', ?, 'active', 1)`,
+      [userId, email, (email.split('@')[0] ?? '').slice(0, 120), password, organizationId],
     );
 
     await connection.query(
@@ -200,6 +209,32 @@ authRouter.get('/me', requireAuth, async (req, res) => {
   }
 
   return res.json({ user: toUserDto(row) });
+});
+
+authRouter.patch('/me/profile', requireAuth, async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+  const parsed = updateMyProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  await pool.query(
+    `UPDATE users
+     SET full_name = ?, phone_number = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [parsed.data.fullName, parsed.data.phoneNumber, authed.id],
+  );
+
+  const [rows] = await pool.query(
+    `SELECT * FROM users WHERE id = ? AND is_active = 1 LIMIT 1`,
+    [authed.id],
+  );
+  const row = (rows as UserRecord[])[0];
+  if (!row) {
+    return res.status(404).json({ error: 'User not found or inactive' });
+  }
+
+  return res.json({ user: toUserDto(row), message: 'Profile updated' });
 });
 
 authRouter.get('/users', requireAuth, async (req, res) => {
