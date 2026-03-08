@@ -338,6 +338,44 @@ export async function summarizePrepKartaSubchapter(
   });
 }
 
+export async function generatePrepKartaSubchapterMcqs(
+  token: string,
+  subchapterId: string,
+  payload: { count?: number } = {},
+): Promise<{ mcqs: string; context: { subject: string; chapter: string; subchapter: string; count: number } }> {
+  return request(`/api/prepkarta/subchapters/${subchapterId}/mcq`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export type PrepKartaSubchapterTurn = {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: string;
+};
+
+export async function listPrepKartaSubchapterTurns(
+  token: string,
+  subchapterId: string,
+): Promise<{ turns: PrepKartaSubchapterTurn[] }> {
+  return request(`/api/prepkarta/subchapters/${subchapterId}/qa`, { token });
+}
+
+export async function savePrepKartaSubchapterTurn(
+  token: string,
+  subchapterId: string,
+  payload: { question: string; answer: string },
+): Promise<{ turn: PrepKartaSubchapterTurn }> {
+  return request(`/api/prepkarta/subchapters/${subchapterId}/qa`, {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
 export async function getPrepKartaQuestion(
   token: string,
   conceptId: string,

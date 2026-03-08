@@ -4,7 +4,7 @@ import { pool } from '../../../db.js';
 import type { AuthedRequest } from '../../../middleware/auth.js';
 import { env } from '../../../config.js';
 import { HuggingFaceClient } from '../../../services/huggingFaceClient.js';
-import { buildSubchapterPrompt } from '../prepkartaPrompt.js';
+import { buildSubchapterMcqPrompt, buildSubchapterPrompt } from '../prepkartaPrompt.js';
 import {
   calculateMasteryScore,
   computeRepeatAfterAttempts,
@@ -52,6 +52,15 @@ const summarizeSubchapterSchema = z.object({
     question: z.string().trim().min(1).max(400),
     answer: z.string().trim().min(1).max(4000),
   })).max(8).optional(),
+});
+
+const generateSubchapterMcqSchema = z.object({
+  count: z.coerce.number().int().min(1).max(5).optional().default(5),
+});
+
+const saveSubchapterQaSchema = z.object({
+  question: z.string().trim().min(1).max(400),
+  answer: z.string().trim().min(1).max(8000),
 });
 
 type SubjectRow = {
@@ -102,6 +111,13 @@ type SubchapterRow = {
   id: string;
   chapter_id: string;
   name: string;
+  created_at: Date | string;
+};
+
+type PrepKartaSubchapterQaRow = {
+  id: string;
+  question: string;
+  answer: string;
   created_at: Date | string;
 };
 
@@ -488,8 +504,8 @@ prepkartaPracticeRouter.post('/subchapters/:id/summary', async (req, res) => {
     ask: parsed.data.ask,
     history: parsed.data.history ?? []
   });
-  console.log('prompt',prompt)
-  const summary = await hfClient.generate(prompt, Math.min(env.HF_MAX_TOKENS, 900));
+
+  const summary = await hfClient.generate(prompt, env.HF_MAX_TOKENS);
   if (!summary) {
     return res.status(502).json({ error: 'Failed to generate subchapter summary. Please try again.' });
   }
@@ -500,6 +516,131 @@ prepkartaPracticeRouter.post('/subchapters/:id/summary', async (req, res) => {
       subject: row.subject_name,
       chapter: row.chapter_name,
       subchapter: row.subchapter_name,
+    },
+  });
+});
+
+prepkartaPracticeRouter.post('/subchapters/:id/mcq', async (req, res) => {
+  const parsed = generateSubchapterMcqSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  if (!env.HF_TOKEN || !hfClient.isAvailable()) {
+    return res.status(400).json({ error: 'AI summary is not configured. Please set HF_TOKEN.' });
+  }
+
+  const { id } = req.params;
+  const [rows] = await pool.query(
+    `SELECT sc.name AS subchapter_name,
+            c.name AS chapter_name,
+            s.name AS subject_name
+     FROM prepkarta_subchapters sc
+     INNER JOIN prepkarta_concepts c ON c.id = sc.chapter_id
+     INNER JOIN prepkarta_subjects s ON s.id = c.subject_id
+     WHERE sc.id = ?
+     LIMIT 1`,
+    [id],
+  );
+  const row = (rows as Array<{ subchapter_name: string; chapter_name: string; subject_name: string }>)[0];
+  if (!row) {
+    return res.status(404).json({ error: 'Subchapter not found' });
+  }
+
+  const prompt = buildSubchapterMcqPrompt({
+    subject: row.subject_name,
+    chapter: row.chapter_name,
+    subchapter: row.subchapter_name,
+    count: parsed.data.count,
+  });
+
+  const mcqs = await hfClient.generate(prompt, env.HF_MAX_TOKENS);
+  if (!mcqs) {
+    return res.status(502).json({ error: 'Failed to generate MCQs. Please try again.' });
+  }
+
+  return res.json({
+    mcqs: mcqs.trim(),
+    context: {
+      subject: row.subject_name,
+      chapter: row.chapter_name,
+      subchapter: row.subchapter_name,
+      count: parsed.data.count,
+    },
+  });
+});
+
+prepkartaPracticeRouter.get('/subchapters/:id/qa', async (req, res) => {
+  const authed = getAuthed(req);
+  const { id: subchapterId } = req.params;
+
+  const [rows] = await pool.query(
+    `SELECT id, question, answer, created_at
+     FROM prepkarta_subchapter_qa
+     WHERE user_id = ? AND subchapter_id = ?
+     ORDER BY created_at ASC`,
+    [authed.id, subchapterId],
+  );
+
+  const turns = (rows as PrepKartaSubchapterQaRow[]).map((row) => ({
+    id: row.id,
+    question: row.question,
+    answer: row.answer,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+  }));
+
+  return res.json({ turns });
+});
+
+prepkartaPracticeRouter.post('/subchapters/:id/qa', async (req, res) => {
+  const authed = getAuthed(req);
+  const { id: subchapterId } = req.params;
+  const parsed = saveSubchapterQaSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  const [subchapterRows] = await pool.query(
+    `SELECT id
+     FROM prepkarta_subchapters
+     WHERE id = ?
+     LIMIT 1`,
+    [subchapterId],
+  );
+  if (!Array.isArray(subchapterRows) || subchapterRows.length === 0) {
+    return res.status(404).json({ error: 'Subchapter not found' });
+  }
+
+  await pool.query(
+    `INSERT INTO prepkarta_subchapter_qa (
+       id, user_id, organization_id, subchapter_id, question, answer, created_at
+     )
+     VALUES (UUID(), ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    [
+      authed.id,
+      authed.organizationId ?? null,
+      subchapterId,
+      parsed.data.question,
+      parsed.data.answer,
+    ],
+  );
+
+  const [savedRows] = await pool.query(
+    `SELECT id, question, answer, created_at
+     FROM prepkarta_subchapter_qa
+     WHERE user_id = ? AND subchapter_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [authed.id, subchapterId],
+  );
+
+  const saved = (savedRows as PrepKartaSubchapterQaRow[])[0];
+  return res.status(201).json({
+    turn: {
+      id: saved.id,
+      question: saved.question,
+      answer: saved.answer,
+      createdAt: saved.created_at instanceof Date ? saved.created_at.toISOString() : saved.created_at,
     },
   });
 });

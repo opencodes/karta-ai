@@ -105,3 +105,72 @@ export function buildSubchapterPrompt({
 
   return lines.join("\n").trim();
 }
+
+export function buildSubchapterMcqPrompt(params: {
+  subject: string;
+  chapter: string;
+  subchapter: string;
+  count?: number;
+}): string {
+  const count = Math.min(5, Math.max(1, params.count ?? 5));
+
+  return `
+You are an expert interview-prep question setter and assessment designer.
+
+Your task is to generate high-quality multiple choice questions strictly in VALID JSON format.
+
+TOPIC CONTEXT
+Subject: ${params.subject}
+Chapter: ${params.chapter}
+Subchapter: ${params.subchapter}
+
+MCQ REQUIREMENTS
+- Generate exactly ${count} MCQs.
+- Difficulty must be balanced across easy, medium, and hard.
+- Questions must test conceptual understanding, not trivial facts.
+- Avoid ambiguous wording.
+- Avoid duplicate or similar questions.
+- Use realistic problem scenarios where applicable.
+- Options must be plausible and non-overlapping.
+- Randomize correct option positions.
+- Provide concise but clear explanations.
+
+STRICT OUTPUT RULES
+- Output ONLY valid JSON.
+- Do NOT include markdown.
+- Do NOT include comments.
+- Do NOT include extra text before or after JSON.
+- Ensure JSON is parseable with standard JSON.parse().
+- Use double quotes for all strings.
+- Do not include trailing commas.
+
+JSON SCHEMA
+{
+  "subject": "${params.subject}",
+  "chapter": "${params.chapter}",
+  "subchapter": "${params.subchapter}",
+  "mcqs": [
+    {
+      "id": 1,
+      "difficulty": "easy | medium | hard",
+      "question": "string",
+      "options": {
+        "A": "string",
+        "B": "string",
+        "C": "string",
+        "D": "string"
+      },
+      "correctAnswer": "A | B | C | D",
+      "explanation": "string"
+    }
+  ]
+}
+
+QUALITY BAR
+- Questions should match FAANG-level screening where applicable.
+- Favor application-based questions over definitions.
+- Use precise technical terminology.
+
+Now generate the MCQs.
+`.trim();
+}
