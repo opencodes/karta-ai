@@ -143,6 +143,46 @@ export async function extractEduKartaChaptersFromImage(
   });
 }
 
+export async function summarizeEduKartaChapter(
+  token: string,
+  payload: { subject: string; chapter: string; ask?: string; history?: Array<{ question: string; answer: string }> },
+): Promise<{ summary: string; context: { board: string; classLevel: string; subject: string; chapter: string } }> {
+  return request('/api/edukarta/profile/chapters/summary', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export type EduKartaChapterTurn = {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: string;
+};
+
+export async function listEduKartaChapterTurns(
+  token: string,
+  subject: string,
+  chapter: string,
+): Promise<{ turns: EduKartaChapterTurn[] }> {
+  return request(
+    `/api/edukarta/profile/chapters/qa?subject=${encodeURIComponent(subject)}&chapter=${encodeURIComponent(chapter)}`,
+    { token },
+  );
+}
+
+export async function saveEduKartaChapterTurn(
+  token: string,
+  payload: { subject: string; chapter: string; question: string; answer: string },
+): Promise<{ turn: EduKartaChapterTurn }> {
+  return request('/api/edukarta/profile/chapters/qa', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
 export async function createTask(token: string, rawInput: string): Promise<{ task: TaskItem }> {
   return request('/api/todokarta/tasks/parse-create', {
     method: 'POST',

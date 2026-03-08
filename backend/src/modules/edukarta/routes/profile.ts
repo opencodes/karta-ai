@@ -27,9 +27,16 @@ type EduKartaSubjectChapterRow = {
   chapter_name: string;
 };
 
+type EduKartaChapterQaRow = {
+  id: string;
+  question: string;
+  answer: string;
+  created_at: Date | string;
+};
+
 const saveSubjectChaptersSchema = z.object({
   subject: z.string().trim().min(1).max(80),
-  chapters: z.array(z.string().trim().min(1).max(500)).min(1).max(200),
+  chapters: z.array(z.string().trim().min(1).max(500)).max(200),
 });
 
 const suggestChaptersSchema = z.object({
@@ -43,6 +50,28 @@ const extractChaptersFromImageSchema = z.object({
     .string()
     .trim()
     .regex(/^data:image\/(png|jpeg|jpg|webp);base64,[A-Za-z0-9+/=]+$/i),
+});
+
+const summarizeChapterSchema = z.object({
+  subject: z.string().trim().min(1).max(80),
+  chapter: z.string().trim().min(1).max(200),
+  ask: z.string().trim().max(400).optional(),
+  history: z.array(z.object({
+    question: z.string().trim().min(1).max(400),
+    answer: z.string().trim().min(1).max(4000),
+  })).max(8).optional(),
+});
+
+const saveChapterQaSchema = z.object({
+  subject: z.string().trim().min(1).max(80),
+  chapter: z.string().trim().min(1).max(200),
+  question: z.string().trim().min(1).max(400),
+  answer: z.string().trim().min(1).max(8000),
+});
+
+const listChapterQaQuerySchema = z.object({
+  subject: z.string().trim().min(1).max(80),
+  chapter: z.string().trim().min(1).max(200),
 });
 
 const hfClient = new HuggingFaceClient();
@@ -246,6 +275,114 @@ edukartaProfileRouter.post('/chapters/extract-from-image', async (req, res) => {
   }
 
   return res.json({ chapters, source: 'ocr-ai' });
+});
+
+edukartaProfileRouter.post('/chapters/summary', async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+  const parsed = summarizeChapterSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  if (!env.HF_TOKEN || !hfClient.isAvailable()) {
+    return res.status(400).json({ error: 'AI summary is not configured. Please set HF_TOKEN.' });
+  }
+
+  const [profileRows] = await pool.query(
+    `SELECT board, class_level
+     FROM edukarta_student_profiles
+     WHERE user_id = ?
+     LIMIT 1`,
+    [authed.id],
+  );
+
+  const profile = (profileRows as Array<{ board: string; class_level: string }>)[0];
+  const board = profile?.board ?? 'General';
+  const classLevel = profile?.class_level ?? 'General';
+
+  const prompt = buildChapterSummaryPrompt({
+    board,
+    classLevel,
+    subject: parsed.data.subject,
+    chapter: parsed.data.chapter,
+    ask: parsed.data.ask,
+    history: parsed.data.history ?? [],
+  });
+
+  const summary = await hfClient.generate(prompt, Math.min(env.HF_MAX_TOKENS, 900));
+  if (!summary) {
+    return res.status(502).json({ error: 'Failed to generate chapter summary. Please try again.' });
+  }
+
+  return res.json({
+    summary: summary.trim(),
+    context: {
+      board,
+      classLevel,
+      subject: parsed.data.subject,
+      chapter: parsed.data.chapter,
+    },
+  });
+});
+
+edukartaProfileRouter.get('/chapters/qa', async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+  const parsed = listChapterQaQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid query', details: parsed.error.flatten() });
+  }
+
+  const [rows] = await pool.query(
+    `SELECT id, question, answer, created_at
+     FROM edukarta_chapter_qa
+     WHERE user_id = ? AND subject = ? AND chapter = ?
+     ORDER BY created_at ASC`,
+    [authed.id, parsed.data.subject, parsed.data.chapter],
+  );
+
+  const turns = (rows as EduKartaChapterQaRow[]).map((row) => ({
+    id: row.id,
+    question: row.question,
+    answer: row.answer,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+  }));
+
+  return res.json({ turns });
+});
+
+edukartaProfileRouter.post('/chapters/qa', async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+  const parsed = saveChapterQaSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  const payload = parsed.data;
+  await pool.query(
+    `INSERT INTO edukarta_chapter_qa
+     (id, user_id, organization_id, subject, chapter, question, answer, created_at)
+     VALUES (UUID(), ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    [authed.id, authed.organizationId ?? null, payload.subject, payload.chapter, payload.question, payload.answer],
+  );
+
+  const [rows] = await pool.query(
+    `SELECT id, question, answer, created_at
+     FROM edukarta_chapter_qa
+     WHERE user_id = ? AND subject = ? AND chapter = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [authed.id, payload.subject, payload.chapter],
+  );
+  const row = (rows as EduKartaChapterQaRow[])[0];
+
+  return res.status(201).json({
+    turn: {
+      id: row?.id ?? '',
+      question: row?.question ?? payload.question,
+      answer: row?.answer ?? payload.answer,
+      createdAt: row?.created_at instanceof Date ? row.created_at.toISOString() : String(row?.created_at ?? new Date().toISOString()),
+    },
+  });
 });
 
 async function suggestChaptersWithAi(subject: string, board: string, classLevel: string, isbn?: string): Promise<string[]> {
@@ -601,6 +738,111 @@ function isValidIsbn13(isbn: string): boolean {
   }
   const expected = (10 - (sum % 10)) % 10;
   return expected === Number(isbn[12]);
+}
+
+function buildChapterSummaryPrompt(input: {
+  board: string;
+  classLevel: string;
+  subject: string;
+  chapter: string;
+  ask?: string;
+  history: Array<{ question: string; answer: string }>;
+}): string {
+  const askText = input.ask?.trim() ?? '';
+  const askLine = askText
+    ? `Student request focus: ${askText}`
+    : 'Student request focus: General understanding and revision readiness.';
+  const isFollowUp = input.history.length > 0;
+  const askLower = askText.toLowerCase();
+  const historyLines = input.history.length > 0
+    ? [
+        'Previous conversation context (follow this and avoid repeating the same points):',
+        ...input.history.flatMap((turn, index) => [
+          `Q${index + 1}: ${turn.question}`,
+          `A${index + 1}: ${turn.answer.slice(0, 800)}`,
+        ]),
+      ]
+    : ['No previous conversation context.'];
+
+  if (isFollowUp) {
+    return [
+      'You are an expert school tutor and curriculum designer.',
+      'You are in FOLLOW-UP mode for the same chapter.',
+      `Board: ${input.board}`,
+      `Class: ${input.classLevel}`,
+      `Subject: ${input.subject}`,
+      `Chapter: ${input.chapter}`,
+      askLine,
+      ...historyLines,
+      '',
+      'Critical rules:',
+      '1) Answer ONLY the latest asked request.',
+      '2) Do NOT repeat full chapter summary unless explicitly asked.',
+      '3) Keep prior context in mind and avoid contradiction.',
+      '4) Return clean markdown only (no HTML).',
+      '5) If the ask is "mind map", return ONLY a clear markdown mind map.',
+      '6) If the ask is for MCQs, return ONLY MCQs.',
+      '7) If the ask is for questions with answers, return ONLY that.',
+      '',
+      askLower.includes('mcq')
+        ? [
+            'MCQ formatting (must follow exactly):',
+            '### MCQs for Exam Preparation',
+            '1. <Question>',
+            '- A) <Option A>',
+            '- B) <Option B>',
+            '- C) <Option C>',
+            '- D) <Option D>',
+            '**Answer:** <A/B/C/D>',
+            '**Explanation:** <1-2 lines>',
+            'Repeat for each MCQ (8 to 10 MCQs).',
+          ].join('\n')
+        : 'Use markdown headings and bullet points as needed for the asked output.',
+      '',
+      'Output scope:',
+      '- Provide exactly one focused response matching the current ask.',
+      '- No extra sections, no unrelated recommendations.',
+    ].join('\n');
+  }
+
+  return [
+    'You are an expert school tutor and curriculum designer.',
+    'Create a high-quality chapter summary for a school student.',
+    `Board: ${input.board}`,
+    `Class: ${input.classLevel}`,
+    `Subject: ${input.subject}`,
+    `Chapter: ${input.chapter}`,
+    askLine,
+    ...historyLines,
+    '',
+    'Instructions:',
+    '1) Keep language simple, precise, and grade-appropriate.',
+    '2) Do not assume chapter text is available; use standard curriculum understanding.',
+    '3) If uncertain, state likely concept names rather than fabricated facts.',
+    '4) Keep the response practical for exam revision.',
+    '5) Return clean markdown only (no HTML). Use short paragraphs and clear bullet points.',
+    '',
+    'Output format (use exactly these markdown headings):',
+    '### Chapter Summary',
+    '- 6 to 8 concise bullet points',
+    '### Key Terms',
+    '- 8 to 12 terms with one-line meaning each',
+    '### Important Formulas/Facts',
+    '- Include only if relevant to the subject/chapter',
+    '### Common Mistakes to Avoid',
+    '- 4 to 6 bullet points',
+    '### Quick Revision Checklist',
+    '- 6 actionable checklist items',
+    '### Practice Questions',
+    '- 5 questions: 2 easy, 2 medium, 1 challenging',
+    'At the end of the response, add this exact section:',
+    'If you want further help with this chapter, I can also provide:',
+    '- Extra short summary for quick revision',
+    '- Important exam questions with answers',
+    '- A clear and easy mind map',
+    '- Hindi notes for quick understanding',
+    '- MCQs for exam preparation'
+  ].join('\n');
 }
 
 function normalizeSubjects(raw: unknown): string[] {
