@@ -87,3 +87,15 @@ ui/node_modules/
 backend/node_modules/
 ui/node_modules/
 web/node_modules/
+mobile/.dart_tool/
+mobile/.pub-cache/
+mobile/build/
+mobile/android/
+mobile/ios/
+mobile/linux/
+mobile/windows/
+mobile/macos/
+mobile/web/
+mobile/.idea/
+mobile/.vscode/
+mobile/test/
