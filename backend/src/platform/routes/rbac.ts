@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
-import { requirePermission } from '../modules/rbac/middleware/requirePermission.js';
-import { canUser, getUserAuthorizationSnapshot } from '../modules/rbac/services/rbacService.js';
+import { requireAuth, type AuthedRequest } from '../../middleware/auth.js';
+import { requirePermission } from '../../modules/rbac/middleware/requirePermission.js';
+import { canUser, getUserAuthorizationSnapshot } from '../../modules/rbac/services/rbacService.js';
 
 export const rbacRouter = Router();
 

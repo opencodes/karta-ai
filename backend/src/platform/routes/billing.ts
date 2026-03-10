@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { pool } from '../db.js';
-import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
-import { getUserEntitledModules } from '../modules/core/accessControl.js';
+import { pool } from '../../db.js';
+import { requireAuth, type AuthedRequest } from '../../middleware/auth.js';
+import { getUserEntitledModules } from '../../modules/core/accessControl.js';
 
 const buyModuleSchema = z.object({
   moduleName: z.string().trim().min(1),

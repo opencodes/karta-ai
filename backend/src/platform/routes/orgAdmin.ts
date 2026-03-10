@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
 import { z } from 'zod';
-import { pool } from '../db.js';
-import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
+import { pool } from '../../db.js';
+import { requireAuth, type AuthedRequest } from '../../middleware/auth.js';
 
 const createOrgUserSchema = z.object({
   email: z.string().email(),

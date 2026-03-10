@@ -1,4 +1,4 @@
-import { tasksRouter } from '../../routes/tasks.js';
+import { tasksRouter } from '../todokarta/routes/tasks.js';
 import { edukartaOverviewRouter } from '../edukarta/routes/overview.js';
 import { edukartaProfileRouter } from '../edukarta/routes/profile.js';
 import { prepkartaExamsRouter } from '../prepkarta/routes/exams.js';

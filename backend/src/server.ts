@@ -2,10 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import { env } from './config.js';
 import { pool } from './db.js';
-import { authRouter } from './routes/auth.js';
-import { billingRouter } from './routes/billing.js';
-import { rbacRouter } from './routes/rbac.js';
-import { orgAdminRouter } from './routes/orgAdmin.js';
+import { authRouter } from './platform/routes/auth.js';
+import { billingRouter } from './platform/routes/billing.js';
+import { rbacRouter } from './platform/routes/rbac.js';
+import { orgAdminRouter } from './platform/routes/orgAdmin.js';
 import { loadModules } from './modules/loadModules.js';
 
 const app = express();

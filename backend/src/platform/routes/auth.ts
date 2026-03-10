@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import { z } from 'zod';
-import { pool } from '../db.js';
-import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
-import { createAuthToken } from '../utils/token.js';
-import type { UserDto, UserRecord } from '../types.js';
-import { roleToSubscription } from '../modules/core/billing.js';
+import { pool } from '../../db.js';
+import { requireAuth, type AuthedRequest } from '../../middleware/auth.js';
+import { createAuthToken } from '../../utils/token.js';
+import type { UserDto, UserRecord } from '../../types.js';
+import { roleToSubscription } from '../../modules/core/billing.js';
 
 const loginSchema = z.object({
   email: z.string().email(),
