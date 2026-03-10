@@ -1,0 +1,14 @@
+export const DEFAULT_MODE = 'resume' as const;
+export const MAX_TIME_SPENT_SECONDS = 1800;
+export const MIN_MCQ_COUNT = 1;
+export const MAX_MCQ_COUNT = 5;
+export const DEFAULT_MCQ_COUNT = 5;
+export const MAX_SUBCHAPTER_HISTORY = 8;
+export const PROGRESS_DECIMALS = 4;
+export const ACCURACY_DECIMALS = 4;
+export const ANALYTICS_TOP_COUNT = 5;
+export const STREAK_BONUS_CAP = 20;
+export const STREAK_POINTS_PER_DAY = 2;
+export const ACCURACY_WEIGHT = 70;
+export const MASTERY_WEIGHT = 6;
+export const PROGRESS_PERCENT_MAX = 100;

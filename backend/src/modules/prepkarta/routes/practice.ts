@@ -1,3 +1,4 @@
+import type { Response } from 'express';
 import { Router } from 'express';
 import { z } from 'zod';
 import type { AuthedRequest } from '../../../middleware/auth.js';
@@ -27,14 +28,14 @@ import {
   summarizeSubchapter,
 } from '../services/practiceService.js';
 
-const modeSchema = z.enum(['resume', 'weak', 'random']).default('resume');
+const modeSchema = z.enum(['resume', 'weak', 'random']).default(DEFAULT_MODE);
 const listQuestionsQuerySchema = z.object({
   mode: modeSchema.optional(),
 });
 
 const answerSchema = z.object({
   selectedOptionIds: z.array(z.string().uuid()).min(1),
-  timeSpentSeconds: z.coerce.number().min(0).max(1800).optional().default(0),
+  timeSpentSeconds: z.coerce.number().min(0).max(MAX_TIME_SPENT_SECONDS).optional().default(0),
 });
 
 const createSubjectSchema = z.object({
@@ -66,11 +67,11 @@ const summarizeSubchapterSchema = z.object({
   history: z.array(z.object({
     question: z.string().trim().min(1).max(400),
     answer: z.string().trim().min(1).max(4000),
-  })).max(8).optional(),
+  })).max(MAX_SUBCHAPTER_HISTORY).optional(),
 });
 
 const generateSubchapterMcqSchema = z.object({
-  count: z.coerce.number().int().min(1).max(5).optional().default(5),
+  count: z.coerce.number().int().min(MIN_MCQ_COUNT).max(MAX_MCQ_COUNT).optional().default(DEFAULT_MCQ_COUNT),
 });
 
 const saveSubchapterQaSchema = z.object({
@@ -101,7 +102,7 @@ prepkartaPracticeRouter.post('/subjects', async (req, res) => {
     return res.status(409).json({ error: 'Subject already exists' });
   }
 
-  return res.status(201).json({ message: 'Subject created' });
+  return res.status(201).json(result);
 });
 
 prepkartaPracticeRouter.patch('/subjects/:id', async (req, res) => {
@@ -116,7 +117,7 @@ prepkartaPracticeRouter.patch('/subjects/:id', async (req, res) => {
     return res.status(404).json({ error: 'Subject not found' });
   }
 
-  return res.json({ message: 'Subject updated' });
+  return res.json(result);
 });
 
 prepkartaPracticeRouter.delete('/subjects/:id', async (req, res) => {
@@ -150,7 +151,7 @@ prepkartaPracticeRouter.post('/subjects/:id/chapters', async (req, res) => {
     return res.status(404).json({ error: 'Subject not found' });
   }
 
-  return res.status(201).json({ message: 'Chapter created' });
+  return res.status(201).json(result);
 });
 
 prepkartaPracticeRouter.patch('/chapters/:id', async (req, res) => {
@@ -165,7 +166,7 @@ prepkartaPracticeRouter.patch('/chapters/:id', async (req, res) => {
     return res.status(404).json({ error: 'Chapter not found' });
   }
 
-  return res.json({ message: 'Chapter updated' });
+  return res.json(result);
 });
 
 prepkartaPracticeRouter.delete('/chapters/:id', async (req, res) => {
@@ -192,7 +193,7 @@ prepkartaPracticeRouter.post('/chapters/:id/subchapters', async (req, res) => {
     return res.status(404).json({ error: 'Chapter not found' });
   }
 
-  return res.status(201).json({ message: 'Subchapter created' });
+  return res.status(201).json(result);
 });
 
 prepkartaPracticeRouter.patch('/subchapters/:id', async (req, res) => {
@@ -207,7 +208,7 @@ prepkartaPracticeRouter.patch('/subchapters/:id', async (req, res) => {
     return res.status(404).json({ error: 'Subchapter not found' });
   }
 
-  return res.json({ message: 'Subchapter updated' });
+  return res.json(result);
 });
 
 prepkartaPracticeRouter.delete('/subchapters/:id', async (req, res) => {
@@ -223,17 +224,7 @@ prepkartaPracticeRouter.get('/subchapters/:id', async (req, res) => {
   if (!row) {
     return res.status(404).json({ error: 'Subchapter not found' });
   }
-
-  return res.json({
-    subchapter: {
-      id: row.subchapter_id,
-      name: row.subchapter_name,
-      chapterId: row.chapter_id,
-      chapterName: row.chapter_name,
-      subjectId: row.subject_id,
-      subjectName: row.subject_name,
-    },
-  });
+  return res.json(result);
 });
 
 prepkartaPracticeRouter.post('/subchapters/:id/summary', async (req, res) => {
