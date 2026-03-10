@@ -250,6 +250,45 @@ POST /upload
 FormData: book = PDF file
 ```
 
+---
+
+# 🧑‍💼 Org Admin Upload (PDF)
+
+Org admins can upload ebook PDFs into the platform backend. This stores the file and metadata for later indexing.
+
+### ✅ Endpoint
+
+```http
+POST /api/org-admin/ebooks
+FormData:
+  ebook = PDF file
+  subject = (required)
+  board = (required)
+  classLevel = (required)
+  title = (optional)
+  author = (optional)
+  isbn = (optional)
+  description = (optional)
+```
+
+### ✅ Response
+
+```json
+{
+  "message": "Ebook uploaded",
+  "ebook": {
+    "id": "uuid",
+    "subject": "Mathematics",
+    "board": "CBSE",
+    "classLevel": "10",
+    "title": "Clean Architecture",
+    "originalName": "clean-architecture.pdf",
+    "size": 1234567,
+    "storagePath": "uploads/ebooks/<orgId>/<uuid>.pdf"
+  }
+}
+```
+
 ### ❓ Ask Question
 
 ```http
@@ -277,4 +316,3 @@ POST /ask
 ✔ Fast semantic search
 ✔ Your own UI control
 ✔ Private knowledge base
-

@@ -24,6 +24,7 @@ import {
   updateOrgAdminModule,
   updateOrgAdminRolePermissions,
   updateOrgAdminSettings,
+  uploadOrgAdminEbook,
   type OrgAdminRole,
   type OrgAdminUser,
   type OrgApiKey,
@@ -31,6 +32,7 @@ import {
   type OrgMemberModuleAccess,
   type OrgPermission,
   type ModuleAccessRequestItem,
+  type OrgEbookUploadResponse,
 } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -59,6 +61,16 @@ export function OrgAdminConsolePage() {
 
   const [newApiKeyName, setNewApiKeyName] = useState('');
   const [lastCreatedApiKey, setLastCreatedApiKey] = useState('');
+
+  const [ebookFile, setEbookFile] = useState<File | null>(null);
+  const [ebookTitle, setEbookTitle] = useState('');
+  const [ebookAuthor, setEbookAuthor] = useState('');
+  const [ebookIsbn, setEbookIsbn] = useState('');
+  const [ebookDescription, setEbookDescription] = useState('');
+  const [ebookSubject, setEbookSubject] = useState('');
+  const [ebookBoard, setEbookBoard] = useState('');
+  const [ebookClassLevel, setEbookClassLevel] = useState('');
+  const [ebookUploadResult, setEbookUploadResult] = useState<OrgEbookUploadResponse | null>(null);
 
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -295,6 +307,46 @@ export function OrgAdminConsolePage() {
     }
   }
 
+  async function onUploadEbook() {
+    if (!token) return;
+    if (!ebookFile) {
+      setError('Select a PDF file to upload.');
+      return;
+    }
+    if (!ebookSubject.trim() || !ebookBoard.trim() || !ebookClassLevel.trim()) {
+      setError('Subject, board, and class are required for ebook uploads.');
+      return;
+    }
+
+    setBusy('upload-ebook');
+    try {
+      const result = await uploadOrgAdminEbook(token, {
+        file: ebookFile,
+        subject: ebookSubject.trim(),
+        board: ebookBoard.trim(),
+        classLevel: ebookClassLevel.trim(),
+        title: ebookTitle || undefined,
+        author: ebookAuthor || undefined,
+        isbn: ebookIsbn || undefined,
+        description: ebookDescription || undefined,
+      });
+      setEbookUploadResult(result);
+      setEbookFile(null);
+      setEbookTitle('');
+      setEbookAuthor('');
+      setEbookIsbn('');
+      setEbookDescription('');
+      setEbookSubject('');
+      setEbookBoard('');
+      setEbookClassLevel('');
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload ebook');
+    } finally {
+      setBusy('');
+    }
+  }
+
   const selectedRole = useMemo(
     () => roles.find((role) => role.id === selectedRoleId) ?? null,
     [roles, selectedRoleId],
@@ -351,6 +403,44 @@ export function OrgAdminConsolePage() {
           <button type="button" onClick={() => void onSaveSettings()} disabled={busy === 'save-settings'} className="mt-3 px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50">
             {busy === 'save-settings' ? 'Saving...' : 'Save Settings'}
           </button>
+        </Card>
+
+        <Card title="Upload Ebook PDF" className="scroll-mt-24" id="org-ebooks">
+          <div className="space-y-3">
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => setEbookFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-xs text-slate-200 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-200 hover:file:bg-white/20"
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input value={ebookSubject} onChange={(e) => setEbookSubject(e.target.value)} placeholder="Subject (required)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={ebookBoard} onChange={(e) => setEbookBoard(e.target.value)} placeholder="Board (required)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={ebookClassLevel} onChange={(e) => setEbookClassLevel(e.target.value)} placeholder="Class (required)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={ebookTitle} onChange={(e) => setEbookTitle(e.target.value)} placeholder="Title (optional)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={ebookAuthor} onChange={(e) => setEbookAuthor(e.target.value)} placeholder="Author (optional)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={ebookIsbn} onChange={(e) => setEbookIsbn(e.target.value)} placeholder="ISBN (optional)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+              <input value={ebookDescription} onChange={(e) => setEbookDescription(e.target.value)} placeholder="Description (optional)" className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-slate-200" />
+            </div>
+            <button
+              type="button"
+              onClick={() => void onUploadEbook()}
+              disabled={busy === 'upload-ebook'}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold btn-primary-ui disabled:opacity-50"
+            >
+              {busy === 'upload-ebook' ? 'Uploading...' : 'Upload Ebook'}
+            </button>
+            {ebookUploadResult ? (
+              <div className="rounded-lg border border-teal/30 bg-teal/10 p-3">
+                <p className="text-xs text-teal font-semibold">{ebookUploadResult.message}</p>
+                <p className="text-xs text-slate-100 mt-1">
+                  {ebookUploadResult.ebook.subject} • {ebookUploadResult.ebook.board} • Class {ebookUploadResult.ebook.classLevel}
+                </p>
+                <p className="text-xs text-slate-100 mt-1">Title: {ebookUploadResult.ebook.title}</p>
+                <p className="text-[11px] text-slate-400">Stored at: {ebookUploadResult.ebook.storagePath}</p>
+              </div>
+            ) : null}
+          </div>
         </Card>
       </div>
 

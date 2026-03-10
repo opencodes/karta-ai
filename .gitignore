@@ -85,6 +85,7 @@ temp/
  
 ui/node_modules/
 backend/node_modules/
+backend/uploads/
 ui/node_modules/
 web/node_modules/
 mobile/.dart_tool/

@@ -18,6 +18,7 @@ import {
   Moon,
   Lock,
   ShieldCheck,
+  GraduationCap,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '../utils/cn';
@@ -136,6 +137,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       ? [
         { icon: ShieldCheck, label: 'Org Console', path: '/admin/org-console', id: 'org_console', isLocked: false },
         { icon: Users, label: 'Org Users', path: '/admin/org-users', id: 'org_users', isLocked: false },
+        ...(hasModule('edukarta')
+          ? [{ icon: GraduationCap, label: 'Manage School/College', path: '/admin/org-school', id: 'org_school', isLocked: false }]
+          : []),
         { icon: CircleUserRound, label: 'Profile', path: '/admin/profile', id: 'profile', isLocked: false },
       ]
     : [

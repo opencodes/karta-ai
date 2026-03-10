@@ -26,6 +26,7 @@ import { RootOrganizationViewPage } from './pages/admin/RootOrganizationView';
 import { OrgAdminConsolePage } from './pages/admin/OrgAdminConsole';
 import { OrgAdminUsersPage } from './pages/admin/OrgAdminUsers';
 import { RootBillingPage } from './pages/admin/RootBilling';
+import { OrgAdminSchoolPage } from './pages/admin/OrgAdminSchool';
 
 function LockedAccess({ message }: { message: string }) {
   return (
@@ -42,7 +43,7 @@ function LockedAccess({ message }: { message: string }) {
 }
 
 const App = () => {
-  const { isAuthenticated, hasPermission, user } = useAuth();
+  const { isAuthenticated, hasPermission, hasModule, user } = useAuth();
   const isOrgAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   return (
@@ -70,6 +71,12 @@ const App = () => {
               <Route path="/root/modules" element={user?.isRoot ? <RootBillingPage /> : <LockedAccess message="Root access required." />} />
               <Route path="/org-console" element={isOrgAdmin || user?.isRoot ? <OrgAdminConsolePage /> : <LockedAccess message="Organization admin access required." />} />
               <Route path="/org-users" element={isOrgAdmin || user?.isRoot ? <OrgAdminUsersPage /> : <LockedAccess message="Organization admin access required." />} />
+              <Route
+                path="/org-school"
+                element={isOrgAdmin && hasModule('edukarta')
+                  ? <OrgAdminSchoolPage />
+                  : <LockedAccess message="EduKarta subscription required for school management." />}
+              />
               <Route path="/todo" element={<TodoPage />} />
               <Route path="/todokarta" element={<TodoPage />} />
               <Route path="/dashboard" element={<AdminDashboard />} />

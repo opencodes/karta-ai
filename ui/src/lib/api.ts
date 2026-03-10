@@ -80,6 +80,12 @@ type RequestOptions = {
   body?: unknown;
 };
 
+type FormRequestOptions = {
+  method?: 'POST' | 'PUT' | 'PATCH';
+  token?: string | null;
+  body: FormData;
+};
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method: options.method ?? 'GET',
@@ -98,6 +104,22 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return response.json() as Promise<T>;
 }
 
+async function requestForm<T>(path: string, options: FormRequestOptions): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: options.method ?? 'POST',
+    headers: {
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+    },
+    body: options.body,
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(payload.error ?? 'Request failed');
+  }
+
+  return response.json() as Promise<T>;
+}
 export async function login(email: string, password: string): Promise<{ token: string; user: User }> {
   return request('/api/auth/login', {
     method: 'POST',
@@ -730,6 +752,25 @@ export type OrgApiKey = {
   created_at: string;
 };
 
+export type OrgEbookUploadResponse = {
+  message: string;
+  ebook: {
+    id: string;
+    subject: string;
+    board: string;
+    classLevel: string;
+    title: string;
+    originalName: string;
+    size: number;
+    storagePath: string;
+  };
+};
+
+export type OrgSchoolConfig = {
+  boards: Array<{ name: string }>;
+  classes: Array<{ name: string; boards: string[]; subjects: string[] }>;
+};
+
 export async function getOrgAdminOverview(token: string): Promise<{
   organization: Record<string, unknown> | null;
   userBreakdown: Array<Record<string, unknown>>;
@@ -923,6 +964,48 @@ export async function buyOrgModule(token: string, moduleName: string): Promise<{
     method: 'POST',
     token,
     body: { moduleName },
+  });
+}
+
+export async function getOrgAdminSchoolConfig(token: string): Promise<OrgSchoolConfig> {
+  return request('/api/org-admin/school-config', { token });
+}
+
+export async function saveOrgAdminSchoolConfig(token: string, payload: OrgSchoolConfig): Promise<{ message: string }> {
+  return request('/api/org-admin/school-config', {
+    method: 'PUT',
+    token,
+    body: payload,
+  });
+}
+
+export async function uploadOrgAdminEbook(
+  token: string,
+  payload: {
+    file: File;
+    subject: string;
+    board: string;
+    classLevel: string;
+    title?: string;
+    author?: string;
+    isbn?: string;
+    description?: string;
+  },
+): Promise<OrgEbookUploadResponse> {
+  const form = new FormData();
+  form.append('ebook', payload.file);
+  form.append('subject', payload.subject);
+  form.append('board', payload.board);
+  form.append('classLevel', payload.classLevel);
+  if (payload.title) form.append('title', payload.title);
+  if (payload.author) form.append('author', payload.author);
+  if (payload.isbn) form.append('isbn', payload.isbn);
+  if (payload.description) form.append('description', payload.description);
+
+  return requestForm('/api/org-admin/ebooks', {
+    method: 'POST',
+    token,
+    body: form,
   });
 }
 

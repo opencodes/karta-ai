@@ -1,5 +1,8 @@
 import crypto from 'node:crypto';
-import { Router } from 'express';
+import fs from 'node:fs';
+import path from 'node:path';
+import { Router, type NextFunction, type Request, type Response } from 'express';
+import multer from 'multer';
 import { z } from 'zod';
 import { pool } from '../../db.js';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth.js';
@@ -64,6 +67,27 @@ const orgBuyModuleSchema = z.object({
   moduleName: z.string().trim().min(1),
 });
 
+const saveOrgSchoolConfigSchema = z.object({
+  boards: z.array(z.object({ name: z.string().trim().min(1).max(120) })).default([]),
+  classes: z.array(
+    z.object({
+      name: z.string().trim().min(1).max(120),
+      boards: z.array(z.string().trim().min(1).max(120)).default([]),
+      subjects: z.array(z.string().trim().min(1).max(120)).default([]),
+    }),
+  ).default([]),
+});
+
+const uploadOrgEbookSchema = z.object({
+  subject: z.string().trim().min(1).max(120),
+  board: z.string().trim().min(1).max(120),
+  classLevel: z.string().trim().min(1).max(40),
+  title: z.string().trim().min(1).max(255).optional(),
+  author: z.string().trim().max(255).optional(),
+  isbn: z.string().trim().max(32).optional(),
+  description: z.string().trim().max(2000).optional(),
+});
+
 export const orgAdminRouter = Router();
 
 function isOrgAdmin(user: AuthedRequest['user']) {
@@ -73,6 +97,53 @@ function isOrgAdmin(user: AuthedRequest['user']) {
 function getOrgId(user: AuthedRequest['user']) {
   return user.organizationId ?? null;
 }
+
+function deriveTitleFromFilename(filename: string) {
+  const base = path.basename(filename, path.extname(filename));
+  const cleaned = base.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return cleaned.length > 0 ? cleaned : 'Untitled ebook';
+}
+
+function requireOrgAdmin(req: Request, res: Response, next: NextFunction) {
+  const authed = (req as unknown as AuthedRequest).user;
+  if (!isOrgAdmin(authed)) {
+    return res.status(403).json({ error: 'Organization admin access required' });
+  }
+
+  const orgId = getOrgId(authed);
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization not assigned' });
+  }
+
+  (req as { orgId?: string }).orgId = orgId;
+  return next();
+}
+
+const ebookUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, _file, cb) => {
+      const orgId = (req as { orgId?: string }).orgId ?? getOrgId((req as AuthedRequest).user);
+      if (!orgId) {
+        return cb(new Error('Organization not assigned'), '');
+      }
+
+      const dir = path.resolve('uploads', 'ebooks', orgId);
+      fs.mkdir(dir, { recursive: true }, (err) => cb(err, dir));
+    },
+    filename: (req, _file, cb) => {
+      const uploadId = crypto.randomUUID();
+      (req as { ebookUploadId?: string }).ebookUploadId = uploadId;
+      cb(null, `${uploadId}.pdf`);
+    },
+  }),
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== 'application/pdf' && file.mimetype !== 'application/x-pdf') {
+      return cb(new Error('Only PDF files are allowed'));
+    }
+    return cb(null, true);
+  },
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 type OrgPlanRow = {
   subscription_id: string;
@@ -889,6 +960,232 @@ orgAdminRouter.patch('/settings', async (req, res) => {
   );
 
   return res.json({ message: 'Organization settings updated' });
+});
+
+orgAdminRouter.post(
+  '/ebooks',
+  requireOrgAdmin,
+  (req, res, next) => {
+    ebookUpload.single('ebook')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ error: err instanceof Error ? err.message : 'Upload failed' });
+      }
+      return next();
+    });
+  },
+  async (req, res) => {
+    const authed = (req as unknown as AuthedRequest).user;
+    const orgId = (req as { orgId?: string }).orgId ?? getOrgId(authed);
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization not assigned' });
+    }
+
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    if (!file) {
+      return res.status(400).json({ error: 'Missing ebook PDF upload' });
+    }
+
+    const parsed = uploadOrgEbookSchema.safeParse(req.body);
+    if (!parsed.success) {
+      await fs.promises.unlink(file.path).catch(() => undefined);
+      return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+    }
+
+    const uploadId = (req as { ebookUploadId?: string }).ebookUploadId ?? file.filename.replace(/\.pdf$/i, '');
+    const storagePath = path.posix.join('uploads', 'ebooks', orgId, file.filename);
+    const title = parsed.data.title ?? deriveTitleFromFilename(file.originalname);
+
+    try {
+      await pool.query(
+        `INSERT INTO organization_ebooks (
+           id, organization_id, uploaded_by,
+           subject, board, class_level,
+           title, author, isbn, description,
+           original_name, stored_name, mime_type, file_size, storage_path, status
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'uploaded')`,
+        [
+          uploadId,
+          orgId,
+          authed.id,
+          parsed.data.subject,
+          parsed.data.board,
+          parsed.data.classLevel,
+          title,
+          parsed.data.author ?? null,
+          parsed.data.isbn ?? null,
+          parsed.data.description ?? null,
+          file.originalname,
+          file.filename,
+          file.mimetype,
+          file.size,
+          storagePath,
+        ],
+      );
+    } catch (error) {
+      await fs.promises.unlink(file.path).catch(() => undefined);
+      throw error;
+    }
+
+    return res.status(201).json({
+      message: 'Ebook uploaded',
+      ebook: {
+        id: uploadId,
+        subject: parsed.data.subject,
+        board: parsed.data.board,
+        classLevel: parsed.data.classLevel,
+        title,
+        originalName: file.originalname,
+        size: file.size,
+        storagePath,
+      },
+    });
+  },
+);
+
+orgAdminRouter.get('/school-config', requireOrgAdmin, async (req, res) => {
+  const orgId = (req as { orgId?: string }).orgId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization not assigned' });
+  }
+
+  const [boardRows] = await pool.query(
+    `SELECT id, name
+     FROM organization_boards
+     WHERE organization_id = ?
+     ORDER BY name ASC`,
+    [orgId],
+  );
+
+  const [classRows] = await pool.query(
+    `SELECT id, name
+     FROM organization_classes
+     WHERE organization_id = ?
+     ORDER BY name ASC`,
+    [orgId],
+  );
+
+  const boards = boardRows as Array<{ id: string; name: string }>;
+  const classes = classRows as Array<{ id: string; name: string }>;
+
+  if (boards.length === 0 || classes.length === 0) {
+    return res.json({ boards: boards.map((b) => ({ name: b.name })), classes: [] });
+  }
+
+  const classIds = classes.map((item) => item.id);
+
+  const [classBoardRows] = await pool.query(
+    `SELECT ocb.class_id, ob.name AS board_name
+     FROM organization_class_boards ocb
+     INNER JOIN organization_boards ob ON ob.id = ocb.board_id
+     WHERE ocb.class_id IN (${classIds.map(() => '?').join(',')})`,
+    classIds,
+  );
+
+  const [classSubjectRows] = await pool.query(
+    `SELECT class_id, name AS subject_name
+     FROM organization_class_subjects
+     WHERE class_id IN (${classIds.map(() => '?').join(',')})`,
+    classIds,
+  );
+
+  const boardsByClass = new Map<string, string[]>();
+  (classBoardRows as Array<{ class_id: string; board_name: string }>).forEach((row) => {
+    const list = boardsByClass.get(row.class_id) ?? [];
+    list.push(row.board_name);
+    boardsByClass.set(row.class_id, list);
+  });
+
+  const subjectsByClass = new Map<string, string[]>();
+  (classSubjectRows as Array<{ class_id: string; subject_name: string }>).forEach((row) => {
+    const list = subjectsByClass.get(row.class_id) ?? [];
+    list.push(row.subject_name);
+    subjectsByClass.set(row.class_id, list);
+  });
+
+  return res.json({
+    boards: boards.map((b) => ({ name: b.name })),
+    classes: classes.map((c) => ({
+      name: c.name,
+      boards: boardsByClass.get(c.id) ?? [],
+      subjects: subjectsByClass.get(c.id) ?? [],
+    })),
+  });
+});
+
+orgAdminRouter.put('/school-config', requireOrgAdmin, async (req, res) => {
+  const orgId = (req as { orgId?: string }).orgId;
+  if (!orgId) {
+    return res.status(400).json({ error: 'Organization not assigned' });
+  }
+
+  const parsed = saveOrgSchoolConfigSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  const payload = parsed.data;
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    await connection.query(
+      `DELETE FROM organization_class_subjects
+       WHERE class_id IN (SELECT id FROM organization_classes WHERE organization_id = ?)`,
+      [orgId],
+    );
+    await connection.query(
+      `DELETE FROM organization_class_boards
+       WHERE class_id IN (SELECT id FROM organization_classes WHERE organization_id = ?)`,
+      [orgId],
+    );
+    await connection.query(`DELETE FROM organization_classes WHERE organization_id = ?`, [orgId]);
+    await connection.query(`DELETE FROM organization_boards WHERE organization_id = ?`, [orgId]);
+
+    const boardIdByName = new Map<string, string>();
+    for (const board of payload.boards) {
+      const boardId = crypto.randomUUID();
+      boardIdByName.set(board.name, boardId);
+      await connection.query(
+        `INSERT INTO organization_boards (id, organization_id, name) VALUES (?, ?, ?)`,
+        [boardId, orgId, board.name],
+      );
+    }
+
+    for (const cls of payload.classes) {
+      const classId = crypto.randomUUID();
+      await connection.query(
+        `INSERT INTO organization_classes (id, organization_id, name) VALUES (?, ?, ?)`,
+        [classId, orgId, cls.name],
+      );
+
+      for (const boardName of cls.boards) {
+        const boardId = boardIdByName.get(boardName);
+        if (!boardId) continue;
+        await connection.query(
+          `INSERT INTO organization_class_boards (id, class_id, board_id) VALUES (?, ?, ?)`,
+          [crypto.randomUUID(), classId, boardId],
+        );
+      }
+
+      for (const subject of cls.subjects) {
+        await connection.query(
+          `INSERT INTO organization_class_subjects (id, class_id, name) VALUES (?, ?, ?)`,
+          [crypto.randomUUID(), classId, subject],
+        );
+      }
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+
+  return res.json({ message: 'School configuration saved' });
 });
 
 orgAdminRouter.get('/reports', async (req, res) => {
