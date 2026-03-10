@@ -26,9 +26,10 @@ export async function addDocs(params: {
 export async function searchDocs(params: {
   embedding: number[];
   nResults?: number;
-  where?: Record<string, string>;
+  where?: Record<string, string> | { $and: Array<Record<string, string>> };
 }): Promise<string[]> {
   const col = await getCollection();
+  console.log('Chroma where', params.where);
   const res = await col.query({
     queryEmbeddings: [params.embedding],
     nResults: params.nResults ?? 5,
