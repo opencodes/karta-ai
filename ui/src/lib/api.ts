@@ -48,6 +48,32 @@ export type EduKartaStudentProfile = {
   updatedAt?: string;
 };
 
+export type EduKartaProgressRow = {
+  done: boolean;
+  bookType: string;
+  noWork: boolean;
+  startDate: string;
+  submissionDate: string;
+  returnedDate: string;
+};
+
+export type EduKartaProgressSubject = {
+  id: string;
+  name: string;
+  bookTypes: string[];
+  yearlyBookTypes: string[];
+  noWorkBookTypes: string[];
+};
+
+export type EduKartaProgressPayload = {
+  subjects: EduKartaProgressSubject[];
+  terms: string[];
+  selectedSubjectId?: string;
+  selectedTerm?: string;
+  selectedBookTypeBySubject: Record<string, string>;
+  progressState: Record<string, Record<string, Record<string, Record<string, EduKartaProgressRow>>>>;
+};
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   token?: string | null;
@@ -191,6 +217,23 @@ export async function saveEduKartaChapterTurn(
 ): Promise<{ turn: EduKartaChapterTurn }> {
   return request('/api/edukarta/profile/chapters/qa', {
     method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export async function getEduKartaProgressProfile(
+  token: string,
+): Promise<{ progress: EduKartaProgressPayload | null; updatedAt?: string }> {
+  return request('/api/edukarta/profile/progress', { token });
+}
+
+export async function saveEduKartaProgressProfile(
+  token: string,
+  payload: EduKartaProgressPayload,
+): Promise<{ message: string }> {
+  return request('/api/edukarta/profile/progress', {
+    method: 'PUT',
     token,
     body: payload,
   });

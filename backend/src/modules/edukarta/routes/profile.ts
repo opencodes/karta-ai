@@ -35,6 +35,11 @@ type EduKartaChapterQaRow = {
   created_at: Date | string;
 };
 
+type EduKartaProgressProfileRow = {
+  progress_data: unknown;
+  updated_at: Date | string;
+};
+
 const saveSubjectChaptersSchema = z.object({
   subject: z.string().trim().min(1).max(80),
   chapters: z.array(z.string().trim().min(1).max(500)).max(200),
@@ -73,6 +78,32 @@ const saveChapterQaSchema = z.object({
 const listChapterQaQuerySchema = z.object({
   subject: z.string().trim().min(1).max(80),
   chapter: z.string().trim().min(1).max(200),
+});
+
+const progressRowSchema = z.object({
+  done: z.boolean(),
+  bookType: z.string().trim().max(120),
+  noWork: z.boolean(),
+  startDate: z.string().trim().max(20),
+  submissionDate: z.string().trim().max(20),
+  returnedDate: z.string().trim().max(20),
+});
+
+const progressSubjectSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(120),
+  bookTypes: z.array(z.string().trim().min(1).max(120)).max(50),
+  yearlyBookTypes: z.array(z.string().trim().min(1).max(120)).max(50),
+  noWorkBookTypes: z.array(z.string().trim().min(1).max(120)).max(50),
+});
+
+const saveProgressSchema = z.object({
+  subjects: z.array(progressSubjectSchema).max(80),
+  terms: z.array(z.string().trim().min(1).max(80)).max(40),
+  selectedSubjectId: z.string().trim().max(80).optional(),
+  selectedTerm: z.string().trim().max(80).optional(),
+  selectedBookTypeBySubject: z.record(z.string().trim().max(120)).default({}),
+  progressState: z.record(z.record(z.record(z.record(progressRowSchema)))).default({}),
 });
 
 const hfClient = new HuggingFaceClient();
@@ -384,6 +415,53 @@ edukartaProfileRouter.post('/chapters/qa', async (req, res) => {
       createdAt: row?.created_at instanceof Date ? row.created_at.toISOString() : String(row?.created_at ?? new Date().toISOString()),
     },
   });
+});
+
+edukartaProfileRouter.get('/progress', async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+
+  const [rows] = await pool.query(
+    `SELECT progress_data, updated_at
+     FROM edukarta_progress_profiles
+     WHERE user_id = ?
+     LIMIT 1`,
+    [authed.id],
+  );
+
+  const row = (rows as EduKartaProgressProfileRow[])[0];
+  if (!row) {
+    return res.json({ progress: null });
+  }
+
+  return res.json({
+    progress: row.progress_data,
+    updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
+  });
+});
+
+edukartaProfileRouter.put('/progress', async (req, res) => {
+  const authed = (req as AuthedRequest).user;
+  const parsed = saveProgressSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid payload', details: parsed.error.flatten() });
+  }
+
+  const payload = parsed.data;
+  const progressDataJson = JSON.stringify(payload);
+
+  await pool.query(
+    `INSERT INTO edukarta_progress_profiles (
+       user_id, organization_id, progress_data, created_at, updated_at
+     )
+     VALUES (?, ?, CAST(? AS JSON), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+     ON DUPLICATE KEY UPDATE
+       organization_id = VALUES(organization_id),
+       progress_data = VALUES(progress_data),
+       updated_at = CURRENT_TIMESTAMP`,
+    [authed.id, authed.organizationId ?? null, progressDataJson],
+  );
+
+  return res.json({ message: 'EduKarta progress saved' });
 });
 
 async function suggestChaptersWithAi(subject: string, board: string, classLevel: string, isbn?: string): Promise<string[]> {

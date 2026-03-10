@@ -17,6 +17,7 @@ DROP TABLE IF EXISTS prepkarta_questions;
 DROP TABLE IF EXISTS prepkarta_concepts;
 DROP TABLE IF EXISTS prepkarta_subjects;
 DROP TABLE IF EXISTS edukarta_chapter_qa;
+DROP TABLE IF EXISTS edukarta_progress_profiles;
 DROP TABLE IF EXISTS edukarta_subject_chapters;
 DROP TABLE IF EXISTS edukarta_student_profiles;
 DROP TABLE IF EXISTS user_subscriptions;
@@ -124,6 +125,19 @@ CREATE TABLE edukarta_chapter_qa (
   CONSTRAINT fk_edukarta_chapter_qa_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_edukarta_chapter_qa_org
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
+);
+
+CREATE TABLE edukarta_progress_profiles (
+  user_id CHAR(36) PRIMARY KEY,
+  organization_id CHAR(36) NULL,
+  progress_data JSON NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_edukarta_progress_profiles_org (organization_id),
+  CONSTRAINT fk_edukarta_progress_profiles_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_edukarta_progress_profiles_org
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
 );
 
