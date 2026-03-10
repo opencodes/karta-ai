@@ -9,7 +9,7 @@ import { orgAdminRouter } from './platform/routes/orgAdmin.js';
 import { loadModules } from './modules/loadModules.js';
 
 const app = express();
-console.log("env ", env.CORS_ORIGIN);
+console.log("CORS_ORIGIN ", env.CORS_ORIGIN);
 
 app.use(cors({ origin: env.CORS_ORIGIN }));
 app.use(express.json({ limit: '10mb' }));

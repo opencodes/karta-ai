@@ -27,6 +27,15 @@ import {
   saveSubchapterQa,
   summarizeSubchapter,
 } from '../services/practiceService.js';
+import {
+  DEFAULT_MCQ_COUNT,
+  DEFAULT_MODE,
+  MAX_MCQ_COUNT,
+  MAX_SUBCHAPTER_HISTORY,
+  MAX_TIME_SPENT_SECONDS,
+  MIN_MCQ_COUNT,
+} from '../services/practiceConstants.js';
+import { DEFAULT_MODE, MAX_TIME_SPENT_SECONDS, MAX_SUBCHAPTER_HISTORY, MIN_MCQ_COUNT, MAX_MCQ_COUNT, DEFAULT_MCQ_COUNT } from '../services/practiceConstants.js';
 
 const modeSchema = z.enum(['resume', 'weak', 'random']).default(DEFAULT_MODE);
 const listQuestionsQuerySchema = z.object({
