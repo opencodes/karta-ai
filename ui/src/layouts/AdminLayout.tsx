@@ -131,6 +131,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       { icon: Building2, label: 'Organizations', path: '/admin/root/organizations', id: 'root_orgs', isLocked: false },
       { icon: Users, label: 'Users', path: '/admin/root/users', id: 'root_users', isLocked: false },
       { icon: CreditCard, label: 'Root Modules', path: '/admin/root/modules', id: 'root_modules', isLocked: false },
+      { icon: BookOpenCheck, label: 'Knowledge Test', path: '/admin/knowledge-test', id: 'root_knowledge_test', isLocked: false },
       { icon: CircleUserRound, label: 'Profile', path: '/admin/profile', id: 'profile', isLocked: false },
     ]
     : (user?.role === 'admin' || user?.role === 'superadmin')

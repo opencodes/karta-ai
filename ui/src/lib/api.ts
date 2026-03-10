@@ -771,6 +771,11 @@ export type OrgSchoolConfig = {
   classes: Array<{ name: string; boards: string[]; subjects: string[] }>;
 };
 
+export type KnowledgeAskResponse = {
+  answer: string;
+  context: string[];
+};
+
 export async function getOrgAdminOverview(token: string): Promise<{
   organization: Record<string, unknown> | null;
   userBreakdown: Array<Record<string, unknown>>;
@@ -974,6 +979,50 @@ export async function getOrgAdminSchoolConfig(token: string): Promise<OrgSchoolC
 export async function saveOrgAdminSchoolConfig(token: string, payload: OrgSchoolConfig): Promise<{ message: string }> {
   return request('/api/org-admin/school-config', {
     method: 'PUT',
+    token,
+    body: payload,
+  });
+}
+
+export async function uploadKnowledgeDocument(
+  token: string,
+  payload: {
+    file: File;
+    moduleSlug?: string;
+    board?: string;
+    classLevel?: string;
+    subject?: string;
+    title?: string;
+  },
+): Promise<{ message: string; chunks: number }> {
+  const form = new FormData();
+  form.append('document', payload.file);
+  if (payload.moduleSlug) form.append('moduleSlug', payload.moduleSlug);
+  if (payload.board) form.append('board', payload.board);
+  if (payload.classLevel) form.append('classLevel', payload.classLevel);
+  if (payload.subject) form.append('subject', payload.subject);
+  if (payload.title) form.append('title', payload.title);
+
+  return requestForm('/api/knowledge/upload', {
+    method: 'POST',
+    token,
+    body: form,
+  });
+}
+
+export async function askKnowledge(
+  token: string,
+  payload: {
+    question: string;
+    moduleSlug?: string;
+    board?: string;
+    classLevel?: string;
+    subject?: string;
+    title?: string;
+  },
+): Promise<KnowledgeAskResponse> {
+  return request('/api/knowledge/ask', {
+    method: 'POST',
     token,
     body: payload,
   });

@@ -6,6 +6,7 @@ import { authRouter } from './platform/routes/auth.js';
 import { billingRouter } from './platform/routes/billing.js';
 import { rbacRouter } from './platform/routes/rbac.js';
 import { orgAdminRouter } from './platform/routes/orgAdmin.js';
+import { knowledgeRouter } from './platform/routes/knowledge.js';
 import { loadModules } from './modules/loadModules.js';
 
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/rbac', rbacRouter);
 app.use('/api/org-admin', orgAdminRouter);
+app.use('/api/knowledge', knowledgeRouter);
 loadModules(app);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

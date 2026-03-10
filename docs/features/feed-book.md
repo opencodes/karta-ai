@@ -62,6 +62,12 @@ Runs at:
 http://localhost:11434
 ```
 
+Optional (if Ollama runs on a different host):
+
+```bash
+export OLLAMA_HOST="http://localhost:11434"
+```
+
 ---
 
 # 🗄 STEP 2 — Start Vector Database
@@ -129,8 +135,10 @@ module.exports = function chunkText(text, size = 1000) {
 // services/embed.js
 const axios = require("axios");
 
+const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
+
 module.exports = async function embed(text) {
-  const res = await axios.post("http://localhost:11434/api/embeddings", {
+  const res = await axios.post(`${OLLAMA_HOST}/api/embeddings`, {
     model: "nomic-embed-text",
     prompt: text,
   });
@@ -171,6 +179,8 @@ exports.searchDocs = async (embedding) => {
 // services/askModel.js
 const axios = require("axios");
 
+const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
+
 module.exports = async function askModel(context, question) {
   const prompt = `
 Answer using the context below.
@@ -180,7 +190,7 @@ ${context.join("\n")}
 Question: ${question}
 `;
 
-  const res = await axios.post("http://localhost:11434/api/generate", {
+  const res = await axios.post(`${OLLAMA_HOST}/api/generate`, {
     model: "llama3",
     prompt,
     stream: false,

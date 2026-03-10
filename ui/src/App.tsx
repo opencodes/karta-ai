@@ -27,6 +27,7 @@ import { OrgAdminConsolePage } from './pages/admin/OrgAdminConsole';
 import { OrgAdminUsersPage } from './pages/admin/OrgAdminUsers';
 import { RootBillingPage } from './pages/admin/RootBilling';
 import { OrgAdminSchoolPage } from './pages/admin/OrgAdminSchool';
+import { KnowledgeTestPage } from './pages/admin/KnowledgeTest';
 
 function LockedAccess({ message }: { message: string }) {
   return (
@@ -77,6 +78,7 @@ const App = () => {
                   ? <OrgAdminSchoolPage />
                   : <LockedAccess message="EduKarta subscription required for school management." />}
               />
+              <Route path="/knowledge-test" element={user?.isRoot ? <KnowledgeTestPage /> : <LockedAccess message="Root access required." />} />
               <Route path="/todo" element={<TodoPage />} />
               <Route path="/todokarta" element={<TodoPage />} />
               <Route path="/dashboard" element={<AdminDashboard />} />

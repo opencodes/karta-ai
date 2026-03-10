@@ -18,6 +18,10 @@ const envSchema = z.object({
   HF_OCR_MODEL: z.string().default('deepseek-ai/DeepSeek-OCR'),
   HF_VISION_MODEL: z.string().default('Qwen/Qwen2.5-VL-7B-Instruct'),
   HF_MAX_TOKENS: z.coerce.number().default(2000),
+  OLLAMA_HOST: z.string().default('http://localhost:11434'),
+  OLLAMA_EMBED_MODEL: z.string().default('nomic-embed-text'),
+  OLLAMA_CHAT_MODEL: z.string().default('llama3'),
+  CHROMA_HOST: z.string().default('http://localhost:8000'),
 });
 
 const parsed = envSchema.safeParse(process.env);
