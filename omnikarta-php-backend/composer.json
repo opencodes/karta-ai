@@ -1,0 +1,11 @@
+{
+  "name": "omnikarta/php-backend",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "ext-curl": "*",
+    "ext-json": "*",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*"
+  }
+}

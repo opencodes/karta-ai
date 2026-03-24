@@ -22,6 +22,17 @@ const TOKEN_KEY = 'karta.auth.token';
 const USER_KEY = 'karta.auth.user';
 const RBAC_KEY = 'karta.auth.rbac';
 
+function normalizeRbacSnapshot(snapshot: RbacSnapshot | null): RbacSnapshot | null {
+  if (!snapshot) return null;
+
+  return {
+    ...snapshot,
+    roles: Array.isArray(snapshot.roles) ? snapshot.roles : [],
+    permissions: Array.isArray(snapshot.permissions) ? snapshot.permissions : [],
+    modules: Array.isArray(snapshot.modules) ? snapshot.modules : [],
+  };
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -39,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const raw = localStorage.getItem(RBAC_KEY);
     if (!raw) return null;
     try {
-      return JSON.parse(raw) as RbacSnapshot;
+      return normalizeRbacSnapshot(JSON.parse(raw) as RbacSnapshot);
     } catch {
       return null;
     }
@@ -48,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshRbac = useCallback(async (): Promise<RbacSnapshot | null> => {
     if (!token) return null;
-    const snapshot = await getRbacMe(token);
+    const snapshot = normalizeRbacSnapshot(await getRbacMe(token));
     setRbac(snapshot);
     localStorage.setItem(RBAC_KEY, JSON.stringify(snapshot));
     return snapshot;
@@ -76,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(authToken);
     setUser(authUser);
     try {
-      const snapshot = await getRbacMe(authToken);
+      const snapshot = normalizeRbacSnapshot(await getRbacMe(authToken));
       setRbac(snapshot);
       localStorage.setItem(RBAC_KEY, JSON.stringify(snapshot));
     } catch {
@@ -93,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(authToken);
     setUser(authUser);
     try {
-      const snapshot = await getRbacMe(authToken);
+      const snapshot = normalizeRbacSnapshot(await getRbacMe(authToken));
       setRbac(snapshot);
       localStorage.setItem(RBAC_KEY, JSON.stringify(snapshot));
     } catch {
@@ -128,12 +139,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasPermission = useCallback((permission: string) => {
     if (user?.isRoot) return true;
+    const permissionList = Array.isArray(rbac?.permissions) ? rbac.permissions : [];
     if (!rbac) {
       if (user?.role === 'admin' || user?.role === 'superadmin') return true;
       if (user?.role === 'member') return permission === 'billing.view';
       return false;
     }
-    return rbac.permissions.includes('*') || rbac.permissions.includes(permission);
+    return permissionList.includes('*') || permissionList.includes(permission);
   }, [user, rbac]);
 
   const hasModule = useCallback((moduleSlug: string) => {
@@ -141,16 +153,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.role === 'member') {
       return memberModules.includes('*') || memberModules.includes(moduleSlug);
     }
+    const moduleList = Array.isArray(rbac?.modules) ? rbac.modules : [];
     if (!rbac) {
       if (user?.role === 'admin' || user?.role === 'superadmin') return false;
       return false;
     }
-    return rbac.modules.includes('*') || rbac.modules.includes(moduleSlug);
+    return moduleList.includes('*') || moduleList.includes(moduleSlug);
   }, [user, rbac, memberModules]);
 
-  const permissions = rbac?.permissions ?? [];
-  const modules = rbac?.modules ?? [];
-  const roles = rbac?.roles ?? [];
+  const permissions = Array.isArray(rbac?.permissions) ? rbac.permissions : [];
+  const modules = Array.isArray(rbac?.modules) ? rbac.modules : [];
+  const roles = Array.isArray(rbac?.roles) ? rbac.roles : [];
 
   const value = useMemo(
     () => ({
